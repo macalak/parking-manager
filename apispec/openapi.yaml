@@ -1,0 +1,3831 @@
+openapi: 3.0.1
+info:
+  title: Capacity management REST API
+  description: |-
+    <center>
+            <strong>
+              CONFIDENTIAL  
+              © 2024 Scheidt & Bachmann Parking Solutions GmbH, Germany 
+            </strong>
+          </center>
+servers:
+  - url: 'https://pm.preprod.parking.scheidt-bachmann.net/capacity-manager'
+    description: Apisix
+  - url: 'https://pm.preprod.parking.scheidt-bachmann.net/capacity-manager'
+    description: Kong
+tags:
+  - name: BookingCounter
+    description: >-
+      Booking counters are used to count reservations of parking spaces on
+      specified dates. These reservations can be made by a consumer who has a
+      valid flexible product.
+  - name: CounterControllerV2
+    description: >-
+      Counter API is dedicated for operations on counters. A counter reflects
+      the calculated number of physical or virtual occupied and available
+      places: physical by facility/area, virtual by category of use (reserved,
+      pre-booked, non-reserved)
+  - name: BookingCounterV2
+    description: >-
+      Booking counters are used to count reservations of parking spaces on
+      specified dates. These reservations can be made by a consumer who has a
+      valid flexible product.
+  - name: APDS
+    description: Alliance for Parking Data Standards
+  - name: SB eConnect
+    description: the SB eConnect API
+  - name: CounterController
+    description: >-
+      Counter API is dedicated for operations on counters. A counter reflects
+      the calculated number of physical or virtual occupied and available
+      places: physical by facility/area, virtual by category of use (reserved,
+      pre-booked, non-reserved)
+paths:
+  '/v2/{tenant}/occupancy/counter/{locationid}/{counterid}':
+    put:
+      tags:
+        - SB eConnect
+      summary: Change standard counter
+      description: >-
+        Manipulates the values of the selected standard counter using query
+        parameters.<br/>Exactly one of the query parameters (occupiedstate,
+        maxplaces, increasefreeplaces, decreasefreeplaces) is required and
+        allowed.
+      operationId: publicUpdateCounter
+      parameters:
+        - name: tenant
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+        - name: locationid
+          in: path
+          description: The location id of the parking facility
+          required: true
+          schema:
+            type: string
+        - name: counterid
+          in: path
+          description: 'The id of the counter to manipulate. Allowed values are: 0, 1, 2'
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - name: occupiedstate
+          in: query
+          description: >-
+            Set the standard counter to fully occupied (occupiedstate  = 1 ).
+            It's not possible to set the standard counter to free
+            (occupiedstate  = 0 ) if it's already occupied.
+          required: false
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+        - name: maxplaces
+          in: query
+          description: >-
+            set the number of maximum places for a standard counter, which is
+            used to recalculate the free places. available = maxplaces -
+            occupied.
+          required: false
+          schema:
+            minimum: 0
+            type: integer
+            format: int32
+            nullable: true
+        - name: increasefreeplaces
+          in: query
+          description: increase the amount of free places by this value
+          required: false
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+        - name: decreasefreeplaces
+          in: query
+          description: reduce the amount of free places by this value
+          required: false
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/CommandResponseEconnectDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponseEconnectDto'
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/CommandResponseEconnectDto'
+        '400, 403, 404, 500':
+          description: Error
+          content:
+            application/xml:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: string
+            text/plain:
+              schema:
+                type: string
+  '/v2/{tenantName}/places/{id}':
+    get:
+      tags:
+        - APDS
+      summary: Read an element in the Place hierarchy
+      description: >-
+        Get latest version of a given place hierarchy element by its identifier
+        (or a particular previous version when provided as a query parameter).
+        <br/> Required permissions:<br/> - `apds_read`<br/>
+      operationId: publicGetPlacesId
+      parameters:
+        - name: tenantName
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: Unique identifier for place hierarchy element
+          required: true
+          schema:
+            type: string
+        - name: version
+          in: query
+          description: Previous version number.
+          required: false
+          schema:
+            minimum: 1
+            type: integer
+            format: int32
+            nullable: true
+        - name: expand
+          in: query
+          description: Optional attributes to expand
+          required: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Place'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseStatus'
+              examples:
+                BadRequestExample:
+                  description: BadRequestExample
+                  value:
+                    status: error
+                    code: 400
+                    message: 'getPlacesId.version: must be greater than or equal to 1'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseStatus'
+              examples:
+                BadRequestExample:
+                  description: BadRequestExample
+                  value:
+                    status: error
+                    code: 403
+                    message: ACCESS_DENIED
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseStatus'
+              examples:
+                NotFoundExample:
+                  description: NotFoundExample
+                  value:
+                    status: error
+                    code: 404
+                    message: PLACE_NOT_FOUND
+        '501':
+          description: Not Implemented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseStatus'
+              examples:
+                NotImplementedExample:
+                  description: NotImplementedExample
+                  value:
+                    status: error
+                    code: 501
+                    message: FILTERING_NOT_YET_IMPLEMENTED
+    put:
+      tags:
+        - APDS
+      summary: Update Place hierarchy element
+      description: >-
+        Update an element in the `Place` hierarchy (or one of its associated
+        attributes like `Occupancy`) <br/> Required permissions:<br/> -
+        `apds_update`<br/>
+      operationId: publicPutPlacesId
+      parameters:
+        - name: tenantName
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: Unique identifier for place hierarchy element
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Place'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseStatus'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseStatus'
+              examples:
+                BadRequestExample:
+                  description: BadRequestExample
+                  value:
+                    status: error
+                    code: 400
+                    message: ''
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseStatus'
+              examples:
+                BadRequestExample:
+                  description: BadRequestExample
+                  value:
+                    status: error
+                    code: 403
+                    message: ACCESS_DENIED
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseStatus'
+              examples:
+                NotFoundExample:
+                  description: NotFoundExample
+                  value:
+                    status: error
+                    code: 404
+                    message: NO_COUNTERS_FOR_FACILITY
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseStatus'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseStatus'
+              examples:
+                InternalServerErrorExample:
+                  description: InternalServerErrorExample
+                  value:
+                    status: error
+                    code: 500
+                    message: NO_PHYSICAL_COUNTER_ASSOCIATED_TO_FACILITY
+  '/v2/{tenantName}/counters/{idCounter}':
+    put:
+      tags:
+        - CounterControllerV2
+      summary: New counter values
+      description: >-
+        Update standard counter by id.<br/><br/>Required permissions:<br/><br/>
+        - `capacity-management_update` 
+      operationId: externalUpdateCounterById
+      parameters:
+        - name: tenantName
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+        - name: idCounter
+          in: path
+          description: Id of counter to be updated
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CounterValueDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/counter'
+  '/v1/{tenantName}/counters/{idCounter}':
+    put:
+      tags:
+        - CounterController
+      summary: New counter values
+      description: >-
+        Update counter values.   Required permissions:    -
+        `capacity-management_update` 
+      operationId: externalUpdateCounterById_1
+      parameters:
+        - name: tenantName
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+        - name: idCounter
+          in: path
+          description: Id of counter to be updated
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CounterValueDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/counter'
+      deprecated: true
+  '/v2/{tenantName}/counters/aggregate':
+    post:
+      tags:
+        - CounterControllerV2
+      summary: Get counters of a partner admin by tenant name and criteria filter
+      description: >-
+        Get counters by search criteria: tenant name, counter types, facilities,
+        products, product groups, product types.<br/><br/>Required
+        permissions:<br/><br/>  - `product-counting-ui_read` 
+      operationId: externalGetCustomerCountersByFilter
+      parameters:
+        - name: tenantName
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CounterFilterDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountersPageDto'
+  '/v1/{tenantName}/counters/aggregate':
+    post:
+      tags:
+        - CounterController
+      summary: Get counters of a partner admin by tenant name and criteria filter
+      description: >-
+        Get counters by search criteria: tenant name, counter types, facilities,
+        products, product groups, product types.   Required permissions:    -
+        `product-counting-ui_read` 
+      operationId: externalGetCustomerCountersByFilter_1
+      parameters:
+        - name: tenantName
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CounterFilterDto'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountersPageDto'
+      deprecated: true
+  '/v2/{tenant}/occupancy/standardcounters':
+    get:
+      tags:
+        - SB eConnect
+      summary: All standard counters
+      description: Returns all standard counters for all parking facilities.
+      operationId: publicGetStandardCounters
+      parameters:
+        - name: tenant
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: >-
+                  #/components/schemas/PublicGetStandardCounters200ResponseEconnectDto
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/PublicGetStandardCounters200ResponseEconnectDto
+            text/plain:
+              schema:
+                $ref: >-
+                  #/components/schemas/PublicGetStandardCounters200ResponseEconnectDto
+        '400, 403, 404, 500':
+          description: Error
+          content:
+            application/xml:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: string
+            text/plain:
+              schema:
+                type: string
+  '/v2/{tenant}/occupancy/standardcounters/{locationid}':
+    get:
+      tags:
+        - SB eConnect
+      summary: Standard counters of one facility
+      description: >-
+        Returns all standard counters for the parking facility with the
+        requested locationId.
+      operationId: publicGetStandardCountersByLocationId
+      parameters:
+        - name: tenant
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+        - name: locationid
+          in: path
+          description: The location id of the parking facility
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: >-
+                  #/components/schemas/PublicGetStandardCountersByLocationId200ResponseEconnectDto
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/PublicGetStandardCountersByLocationId200ResponseEconnectDto
+            text/plain:
+              schema:
+                $ref: >-
+                  #/components/schemas/PublicGetStandardCountersByLocationId200ResponseEconnectDto
+        '400, 403, 404, 500':
+          description: Error
+          content:
+            application/xml:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: string
+            text/plain:
+              schema:
+                type: string
+  '/v2/{tenant}/occupancy/openinghours':
+    get:
+      tags:
+        - SB eConnect
+      summary: All opening hours
+      description: Returns the opening hours for all parking facilities.
+      operationId: publicGetOpeningHours
+      parameters:
+        - name: tenant
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: >-
+                  #/components/schemas/PublicGetOpeningHours200ResponseEconnectDto
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/PublicGetOpeningHours200ResponseEconnectDto
+            text/plain:
+              schema:
+                $ref: >-
+                  #/components/schemas/PublicGetOpeningHours200ResponseEconnectDto
+        '400, 403, 404, 500':
+          description: Error
+          content:
+            application/xml:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: string
+            text/plain:
+              schema:
+                type: string
+  '/v2/{tenant}/occupancy/openinghours/{locationid}':
+    get:
+      tags:
+        - SB eConnect
+      summary: Opening hours of one facility
+      description: >-
+        Returns the opening hours for the parking facility with the requested
+        locationId.
+      operationId: publicGetOpeningHoursByLocationId
+      parameters:
+        - name: tenant
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+        - name: locationid
+          in: path
+          description: The location id of the parking facility
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: >-
+                  #/components/schemas/PublicGetOpeningHoursByLocationId200ResponseEconnectDto
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/PublicGetOpeningHoursByLocationId200ResponseEconnectDto
+            text/plain:
+              schema:
+                $ref: >-
+                  #/components/schemas/PublicGetOpeningHoursByLocationId200ResponseEconnectDto
+        '400, 403, 404, 500':
+          description: Error
+          content:
+            application/xml:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: string
+            text/plain:
+              schema:
+                type: string
+  '/v2/{tenant}/occupancy/facilities':
+    get:
+      tags:
+        - SB eConnect
+      summary: All facilities
+      description: >-
+        Returns the information for all facilities (facility name, location
+        ID..).
+      operationId: publicGetFacilities
+      parameters:
+        - name: tenant
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/PublicGetFacilities200ResponseEconnectDto'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicGetFacilities200ResponseEconnectDto'
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/PublicGetFacilities200ResponseEconnectDto'
+        '400, 403, 404, 500':
+          description: Error
+          content:
+            application/xml:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: string
+            text/plain:
+              schema:
+                type: string
+  '/v2/{tenantName}/places':
+    get:
+      tags:
+        - APDS
+      summary: List and search for elements in the Place hierarchy
+      description: >-
+        Lists `Places` and allows searching/filtering by:  * `latitude`,
+        `longitude`, `radius` * `modified_since` * `layer` * `type` *
+        `right_type` * `structure_type` * `structure_grade` * `name` <br/>
+        Required permissions:<br/> - `apds_read`<br/>
+      operationId: publicGetPlaces
+      parameters:
+        - name: tenantName
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+        - name: offset
+          in: query
+          description: >-
+            The number of items to skip before starting to return results (for
+            pagination).
+          required: false
+          schema:
+            minimum: 0
+            type: integer
+            format: int32
+            nullable: true
+        - name: pageSize
+          in: query
+          description: The maximum number of items to return per page.
+          required: false
+          schema:
+            maximum: 100
+            minimum: 1
+            type: integer
+            format: int32
+            nullable: true
+        - name: referenceInstant
+          in: query
+          description: >-
+            Allows a consistent view of data across multiple paged requests. 
+            Unix epoch time to be used as reference for offset > 0  (corresponds
+            to query instant, as returned by server on first call) -  should be
+            the same for all pages.
+          required: false
+          schema:
+            minimum: 0
+            type: integer
+            format: int32
+            nullable: true
+        - name: latitude
+          in: query
+          description: >-
+            Location latitude to use as filter (mandatory if longitude or radius
+            are defined)
+          required: false
+          schema:
+            type: number
+            format: float
+            nullable: true
+        - name: longitude
+          in: query
+          description: >-
+            Location longitude to use as filter (mandatory if longitude or
+            radius are defined)
+          required: false
+          schema:
+            type: number
+            format: float
+            nullable: true
+        - name: radius
+          in: query
+          description: Number of metres to use as search filter
+          required: false
+          schema:
+            minimum: 0
+            type: integer
+            format: int32
+            nullable: true
+        - name: expand
+          in: query
+          description: Optional attributes to expand
+          required: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+        - name: layer
+          in: query
+          description: Most detailed layer of data desired.
+          required: false
+          schema:
+            type: integer
+            format: int32
+            nullable: true
+        - name: type
+          in: query
+          description: Comma-separated list of Place types
+          required: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+              enum:
+                - campus
+                - identifiedArea
+                - parkingPlace
+                - space
+                - subplaceElement
+        - name: right_type
+          in: query
+          description: Comma-separated list of RightSpecifications types
+          required: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+              enum:
+                - accessPermission
+                - loadingUnloading
+                - oneTimeUseParking
+                - permitParking
+                - setdownPickup
+                - waiting
+        - name: structure_type
+          in: query
+          description: Comma-separated list of Structure types
+          required: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+              enum:
+                - offStreetStructure
+                - offStreetSurface
+                - onStreet
+        - name: structure_grade
+          in: query
+          description: Comma-separated list of Structure grades
+          required: false
+          schema:
+            type: array
+            nullable: true
+            items:
+              type: string
+              enum:
+                - aboveGround
+                - groundLevel
+                - underground
+        - name: name
+          in: query
+          description: Name of place hierarchy element
+          required: false
+          schema:
+            type: string
+            nullable: true
+        - name: modified_since
+          in: query
+          description: Show resources changed after given timestamp (epoch seconds).
+          required: false
+          schema:
+            minimum: 0
+            type: integer
+            format: int32
+            nullable: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicGetPlaces200ResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseStatus'
+              examples:
+                BadRequestExample:
+                  description: BadRequestExample
+                  value:
+                    status: error
+                    code: 400
+                    message: >-
+                      getPlaces.referenceInstant: must be greater than or equal
+                      to 0
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseStatus'
+              examples:
+                BadRequestExample:
+                  description: BadRequestExample
+                  value:
+                    status: error
+                    code: 403
+                    message: ACCESS_DENIED
+        '501':
+          description: Not Implemented
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseStatus'
+              examples:
+                NotImplementedExample:
+                  description: NotImplementedExample
+                  value:
+                    status: error
+                    code: 501
+                    message: FILTERING_NOT_YET_IMPLEMENTED
+  '/v2/{tenantName}/counters':
+    get:
+      tags:
+        - CounterControllerV2
+      summary: List counters
+      description: >-
+        Get counters by search criteria: tenant name, facilities. <br/><br/>
+        Required permissions: <br/><br/> - `capacity-management_read` 
+      operationId: externalGetCounters
+      parameters:
+        - name: tenantName
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+            description: Tenant Name
+            example: schwalmstrasse
+        - name: facilities
+          in: query
+          description: 'Facilities uuid seperated by '','''
+          required: false
+          schema:
+            type: string
+            description: 'Facilities uuid seperated by '','''
+            nullable: true
+            example: >-
+              de458726-e29d-4d98-893c-5c036721eb16,77849e65-2db1-40f4-a185-32626d63809d
+      responses:
+        '200':
+          description: List of counters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/counter'
+        '404':
+          description: No counters found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/counter'
+  '/v2/{tenantName}/booking-counters/occupancy-schedule':
+    get:
+      tags:
+        - BookingCounterV2
+      summary: >-
+        Deprecated endpoint for retrieving the occupancy of booked parking
+        places by period
+      description: >-
+        This endpoint is deprecated and will be removed on 2025-12-26. Use GET
+        /customers-contracts/v2/tenantName/bookings/occupancy-schedule instead.
+      operationId: externalGetBookingCounterOccupencySchedule
+      parameters:
+        - name: correlationId
+          in: header
+          description: Mandatory correlation ID in order to track the request
+          required: true
+          schema:
+            type: string
+        - name: tenantName
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+        - name: startDateTime
+          in: query
+          description: Start date and time of of the query (in UTC format)
+          required: true
+          schema:
+            type: string
+            description: Start date and time of of the query (in UTC format)
+            format: date-time
+            example: '2023-08-20T09:00:00Z'
+        - name: endDateTime
+          in: query
+          description: End date and time of of the query (in UTC format)
+          required: true
+          schema:
+            type: string
+            description: End date and time of of the query (in UTC format)
+            format: date-time
+            example: '2023-08-21T09:00:00Z'
+        - name: productNumber
+          in: query
+          description: Product business id
+          required: true
+          schema:
+            type: string
+        - name: contractNumber
+          in: query
+          description: Contract generated business id. Format is= Ayyyynnnnnnnn.
+          required: true
+          schema:
+            type: string
+        - name: customerNumber
+          in: query
+          description: Customer generated business id. Format is= CXyyyynnnnnn.
+          required: false
+          schema:
+            type: string
+            nullable: true
+        - name: consumerNumber
+          in: query
+          description: Consumer generated business id. Format is= Nyyyynnnnnn.
+          required: false
+          schema:
+            type: string
+            nullable: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingCounterResponseDto'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessageDto'
+        '404':
+          description: NOT FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessageDto'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessageDto'
+      deprecated: true
+  '/v1/{tenantName}/counters':
+    get:
+      tags:
+        - CounterController
+      summary: List counters
+      description: >-
+        Get counters by search criteria: tenant name, facilities.   Required
+        permissions:    - `capacity-management_read` 
+      operationId: externalGetCounters_1
+      parameters:
+        - name: tenantName
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+            description: Tenant Name
+            example: schwalmstrasse
+        - name: facilities
+          in: query
+          description: 'Facilities uuid seperated by '','''
+          required: false
+          schema:
+            type: string
+            description: 'Facilities uuid seperated by '','''
+            nullable: true
+            example: >-
+              de458726-e29d-4d98-893c-5c036721eb16,77849e65-2db1-40f4-a185-32626d63809d
+      responses:
+        '200':
+          description: List of counters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/counter'
+        '404':
+          description: No counters found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/counter'
+      deprecated: true
+  '/v1/{tenantName}/booking-counters/occupancy-schedule':
+    get:
+      tags:
+        - BookingCounter
+      summary: >-
+        Deprecated endpoint for retrieving the occupancy of booked parking
+        places by period
+      description: >-
+        This endpoint is deprecated and will be removed on 2025-12-26. Use GET
+        /customers-contracts/v2/tenantName/bookings/occupancy-schedule instead.
+      operationId: externalGetBookingCounterOccupencySchedule_1
+      parameters:
+        - name: tenantName
+          in: path
+          description: Unique name of tenant in multi-tenant system
+          required: true
+          schema:
+            type: string
+        - name: startDateTime
+          in: query
+          description: Start date and time of of the query (in UTC format)
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: endDateTime
+          in: query
+          description: End date and time of of the query (in UTC format)
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: productNumber
+          in: query
+          description: Product business id
+          required: true
+          schema:
+            type: string
+        - name: contractNumber
+          in: query
+          description: Contract generated business id. Format is= Ayyyynnnnnnnn.
+          required: true
+          schema:
+            type: string
+        - name: customerNumber
+          in: query
+          description: Customer generated business id. Format is= CXyyyynnnnnn.
+          required: false
+          schema:
+            type: string
+            nullable: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingCounterResponseDto'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessageDto'
+        '404':
+          description: NOT FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessageDto'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessageDto'
+      deprecated: true
+components:
+  schemas:
+    CommandResponseEconnectDto:
+      type: object
+      properties:
+        status:
+          type: integer
+          description: >-
+            The response code for the request <br/> 0: request successful <br/>
+            other values: request failed
+          format: int32
+          nullable: true
+    ResponseStatus:
+      required:
+        - status
+      type: object
+      properties:
+        status:
+          type: string
+          description: Type of status
+          enum:
+            - ok
+            - error
+        code:
+          type: integer
+          description: Same numbering and semantics as HTTP status codes
+          format: int32
+          nullable: true
+        message:
+          type: string
+          description: >-
+            Descriptive message for error statuses or a error status with the
+            following possible values <br/> -
+            INVALID_OCCUPANCY_GREATER_THAN_PHYSICAL_COUNTER_CAPACITY: Count can
+            not exceed physical capacity of the given location.<br/> -
+            INVALID_OCCUPANCY_LESS_THEN_SPECIFIC_COUNTERS_SUM: Count can not be
+            less then the sum of specific facility's counters.<br/> 
+          nullable: true
+      description: 'Codifies responses following some creation, update or delete operation'
+    AccessAndEgressDto:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/AccessAndEgressValidity'
+        - $ref: '#/components/schemas/AccessAndEgressPeriods'
+    AccessAndEgressPeriods:
+      type: object
+      properties:
+        exitPossibleAtAnyTime:
+          type: boolean
+          description: >-
+            If [TRUE], specifies that the specified access is available for exit
+            at all times.
+          nullable: true
+        entranceOpenTimeArea:
+          type: array
+          description: Entrance open time area
+          items:
+            $ref: '#/components/schemas/EntranceOpenTime'
+        exitOpenTimeArea:
+          type: array
+          description: Exit open time area
+          items:
+            $ref: '#/components/schemas/ExitOpenTime'
+        periods:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: list of periods
+          items:
+            $ref: '#/components/schemas/Period'
+      description: Supporting model. `AccessAndEgress` variant with `Periods`
+    AccessAndEgressValidity:
+      type: object
+      properties:
+        exitPossibleAtAnyTime:
+          type: boolean
+          description: >-
+            If [TRUE], specifies that the specified access is available for exit
+            at all times.
+          nullable: true
+        entranceOpenTimeArea:
+          type: array
+          description: Entrance open time area
+          items:
+            $ref: '#/components/schemas/EntranceOpenTime'
+        exitOpenTimeArea:
+          type: array
+          description: Exit open time area
+          items:
+            $ref: '#/components/schemas/ExitOpenTime'
+        validity:
+          $ref: '#/components/schemas/Validity'
+      description: Supporting model. `AccessAndEgress` variant with `Validity`
+    Address:
+      type: object
+      properties:
+        addressLines:
+          type: array
+          description: Address lines
+          items:
+            $ref: '#/components/schemas/AddressLine'
+        city:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        countryCode:
+          pattern: '^[a-z]{2}$'
+          type: string
+          description: EN ISO 3166-1 two-character country code.
+          nullable: true
+          example: es
+        postCode:
+          type: string
+          description: Postcode or postal code for the address.
+          nullable: true
+      description: A street oriented addressing structure supporting delivery
+    AddressLine:
+      required:
+        - order
+        - text
+        - type
+      type: object
+      properties:
+        order:
+          minimum: 0
+          type: integer
+          description: >-
+            the sequence order that the address line element should be displayed
+            in
+          format: int32
+        text:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        type:
+          type: string
+          enum:
+            - apartment
+            - building
+            - districtTerritory
+            - floor
+            - poBox
+            - region
+            - street
+            - town
+            - unit
+      description: A class defining information concerning one line of a postal address.
+    AreaLocationDto:
+      type: object
+      description: Place bounded zone
+      oneOf:
+        - $ref: '#/components/schemas/AreaLocationOneOfDto'
+        - $ref: '#/components/schemas/GeoJsonMultiPolygon'
+    AreaLocationOneOfDto:
+      type: object
+      properties:
+        namedArea:
+          $ref: '#/components/schemas/AreaLocationOneOfNamedAreaDto'
+    AreaLocationOneOfNamedAreaDto:
+      type: object
+      nullable: true
+      oneOf:
+        - $ref: '#/components/schemas/IsoNamedArea'
+        - $ref: '#/components/schemas/NutsNamedArea'
+    BrandsAcceptedCodeList:
+      required:
+        - brandsAcceptedList
+      type: object
+      properties:
+        brandsAcceptedList:
+          $ref: '#/components/schemas/ReferencedCodeListEntry'
+      description: Use this class to describe details of the brands that are accepted.
+    BrandsAcceptedText:
+      type: object
+      properties:
+        brandsAcccepted:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+      description: Use this class to describe details of the brands that are accepted.
+    Characteristics:
+      type: object
+      properties:
+        accessControlled:
+          type: boolean
+          description: >-
+            Indicates facility has physical access control (e.g. barriers,
+            gates) [TRUE] or no access control [FALSE]
+          nullable: true
+        coveredType:
+          type: string
+          nullable: true
+          enum:
+            - covered
+            - notCovered
+            - partiallyCovered
+            - topLevelNotCovered
+        disabledAccess:
+          type: boolean
+          description: >-
+            If [TRUE], there is provision of facilities for disable access
+            available.
+          nullable: true
+        disabledAccessTypes:
+          type: array
+          description: >-
+            Defines the type of provision of facilities for disable access
+            available
+          items:
+            type: string
+            description: >-
+              Defines the type of provision of facilities for disable access
+              available
+            enum:
+              - barrierFreeAccessible
+              - disabledAccessible
+              - disabledEasements
+              - disabledMarkedThere
+              - none
+              - orientationSystemForBlindPeople
+              - other
+              - unknown
+              - wheelChairAccessible
+        evChargingPoints:
+          minimum: 0
+          type: integer
+          description: Total number of electric vehicle charging points
+          format: int32
+          nullable: true
+        openToPublic:
+          type: boolean
+          description: >-
+            identifies if this facility is accessible to public use [TRUE] or
+            private use only [FALSE].
+          nullable: true
+        operatingModes:
+          type: array
+          description: defines the mode of parking operation in use
+          items:
+            type: string
+            description: defines the mode of parking operation in use
+            enum:
+              - app
+              - payAndDisplay
+              - payByPlate
+              - payBySpace
+              - permit
+              - ticket
+        robotic:
+          type: boolean
+          description: >-
+            Indicates existence of a robotic parking system - a parking
+            structure where customer leaves vehicle at drop off area and robots
+            move the vehicle to parking location in structure. Default or
+            absence of value indicates [FALSE] = no robotic parking system.
+          nullable: true
+        spacesNonDedicated:
+          minimum: 0
+          type: integer
+          description: >-
+            Number of parking spaces that are not assigned for a particular
+            purpose.
+          format: int32
+          nullable: true
+        spacesTotal:
+          minimum: 0
+          type: integer
+          description: Total number of parking spaces
+          format: int32
+          nullable: true
+        staffed:
+          type: string
+          nullable: true
+          enum:
+            - staffed
+            - temporary
+            - unstaffed
+        structureGrade:
+          type: string
+          nullable: true
+          enum:
+            - aboveGround
+            - groundLevel
+            - underground
+        structureType:
+          type: string
+          nullable: true
+          enum:
+            - offStreetStructure
+            - offStreetSurface
+            - onStreet
+      description: >-
+        A class defining information concerning characteristics relating to a
+        parking facility.
+    CommonComponentsContactsInnerDto:
+      type: object
+      description: Contact info for hierarchy element
+      oneOf:
+        - $ref: '#/components/schemas/Contact'
+        - $ref: '#/components/schemas/ContactPoint'
+        - $ref: '#/components/schemas/ContactByReference'
+    Contact:
+      type: object
+      properties:
+        contactNotDefined:
+          type: boolean
+          description: >-
+            When [TRUE], there is currently no contact defined for the selected
+            role and/or timeframe. Don't use the specialisations in this case.
+          nullable: true
+        contactUnknown:
+          type: boolean
+          description: >-
+            When [TRUE], the contact for the selected role and/or timeframe is
+            unknown. Don't use the specialisations in this case.
+          nullable: true
+        shareWithPublic:
+          type: boolean
+          description: >-
+            When [TRUE], the details of this contact may be shared with the
+            public. If FALSE these contacts details are for internal purposes
+            only.
+          nullable: true
+        validityOfContact:
+          $ref: '#/components/schemas/OverallPeriod'
+      description: >-
+        Address and contact information about some person, service or the
+        parking site, provided in detail or via reference.
+    ContactByReference:
+      required:
+        - contactReference
+      type: object
+      properties:
+        contactNotDefined:
+          type: boolean
+          description: >-
+            When [TRUE], there is currently no contact defined for the selected
+            role and/or timeframe. Don't use the specialisations in this case.
+          nullable: true
+        contactUnknown:
+          type: boolean
+          description: >-
+            When [TRUE], the contact for the selected role and/or timeframe is
+            unknown. Don't use the specialisations in this case.
+          nullable: true
+        shareWithPublic:
+          type: boolean
+          description: >-
+            When [TRUE], the details of this contact may be shared with the
+            public. If FALSE these contacts details are for internal purposes
+            only.
+          nullable: true
+        validityOfContact:
+          $ref: '#/components/schemas/OverallPeriod'
+        contactReference:
+          $ref: '#/components/schemas/VersionedReference'
+      description: Contact information that is addressed via a reference.
+    ContactDetails:
+      type: object
+      properties:
+        available24hours:
+          type: boolean
+          description: >-
+            Specifies if the availability is 24 hours a day. If [TRUE] available
+            24 hours. If omitted, this information is unknown or heterogeneous.
+          nullable: true
+        contactDetailsFax:
+          type: string
+          description: Fax of the contact.
+          nullable: true
+        contactDetailsLanguage:
+          type: array
+          description: Language(s) this contact is able to speak resp. understand.
+          items:
+            pattern: '^[a-z]{2}$'
+            type: string
+            description: Language(s) this contact is able to speak resp. understand.
+        contactDetailsLogoUrl:
+          type: string
+          description: Represents a Url for an internet accessible resource
+          nullable: true
+        contactDetailsMoreInfo:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        contactDetailsResponsibility:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        contactPersonFirstName:
+          type: string
+          description: First name of the contact person.
+          nullable: true
+        contactPersonName:
+          type: string
+          description: Name of the contact person.
+          nullable: true
+        contactPersonPosition:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        publishingAgreement:
+          type: boolean
+          description: >-
+            Indication, whether the contact accepted publishing its contact
+            information [TRUE]=accepted.
+          nullable: true
+        urlLinkAddress:
+          type: string
+          description: Represents a Url for an internet accessible resource
+          nullable: true
+      description: >-
+        Details for some person, service or the parking site itself, especially
+        address information.
+    ContactPoint:
+      required:
+        - id
+        - type
+        - version
+      type: object
+      properties:
+        id:
+          maxLength: 2147483647
+          minLength: 1
+          type: string
+          description: Unique identifier for object
+        version:
+          minimum: 1
+          type: integer
+          description: Positive integer representing the object version
+          format: int32
+        contactNotDefined:
+          type: boolean
+          description: >-
+            When [TRUE], there is currently no contact defined for the selected
+            role and/or timeframe. Don't use the specialisations in this case.
+          nullable: true
+        contactUnknown:
+          type: boolean
+          description: >-
+            When [TRUE], the contact for the selected role and/or timeframe is
+            unknown. Don't use the specialisations in this case.
+          nullable: true
+        shareWithPublic:
+          type: boolean
+          description: >-
+            When [TRUE], the details of this contact may be shared with the
+            public. If FALSE these contacts details are for internal purposes
+            only.
+          nullable: true
+        validityOfContact:
+          $ref: '#/components/schemas/OverallPeriod'
+        organisationName:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        type:
+          type: string
+          enum:
+            - customerService
+            - emergencyContact
+            - operator
+            - owner
+            - propertyManager
+            - securityService
+        address:
+          type: array
+          description: Address
+          items:
+            $ref: '#/components/schemas/Address'
+        contactDetails:
+          type: array
+          description: Contact details
+          items:
+            $ref: '#/components/schemas/ContactDetails'
+        eMailCommonData:
+          type: array
+          description: E mail common data
+          items:
+            $ref: '#/components/schemas/EMailCommonData'
+        telephoneContacts:
+          type: array
+          description: Telephone contact
+          items:
+            $ref: '#/components/schemas/TelephoneContact'
+        pointLocations:
+          type: array
+          description: Contact point location
+          items:
+            $ref: '#/components/schemas/PointLocationDto'
+      description: >-
+        Defines contact details for specified role.   **NB**: Organisation name
+        attribute should not be used in combination with role
+        `parkingSiteAddress`.
+    DayWeekMonth:
+      type: object
+      properties:
+        applicableDay:
+          maxItems: 7
+          minItems: 0
+          uniqueItems: true
+          type: array
+          description: >-
+            Applicable day of the week. "All days of the week" is expressed by
+            non-inclusion of this attribute.
+          items:
+            type: string
+            description: >-
+              Applicable day of the week. "All days of the week" is expressed by
+              non-inclusion of this attribute.
+            enum:
+              - friday
+              - monday
+              - saturday
+              - sunday
+              - thursday
+              - tuesday
+              - wednesday
+        applicableMonth:
+          maxItems: 12
+          minItems: 0
+          uniqueItems: true
+          type: array
+          description: >-
+            Applicable month of the year. "All months of the year" is expressed
+            by non-inclusion of this attribute.
+          items:
+            type: string
+            description: >-
+              Applicable month of the year. "All months of the year" is
+              expressed by non-inclusion of this attribute.
+            enum:
+              - january
+              - february
+              - march
+              - april
+              - may
+              - june
+              - july
+              - august
+              - september
+              - october
+              - november
+              - december
+        applicableWeek:
+          maxItems: 5
+          minItems: 0
+          uniqueItems: true
+          type: array
+          description: >-
+            Applicable week of the month (1 to 5). "All  weeks of the month" is
+            expressed by non-inclusion of this attribute.
+          items:
+            type: string
+            description: >-
+              Applicable week of the month (1 to 5). "All  weeks of the month"
+              is expressed by non-inclusion of this attribute.
+            enum:
+              - firstWeekOfMonth
+              - secondWeekOfMonth
+              - thirdWeekOfMonth
+              - fourthWeekOfMonth
+              - fifthWeekOfMonth
+      description: >-
+        Specification of periods defined by the intersection of days, weeks and
+        months.
+    DemandSpaceType:
+      required:
+        - detectionUpdateTime
+      type: object
+      properties:
+        detectionUpdateTime:
+          type: string
+          description: 'Time of update, from detector.'
+          format: date-time
+        occupancyEndTime:
+          type: string
+          description: The actual Time space is vacated.
+          format: date-time
+          nullable: true
+        occupancyEstimatedEndTime:
+          type: string
+          description: The estimated time a space is expected to be vacated.
+          format: date-time
+          nullable: true
+        occupancyEstimatedStartTime:
+          type: string
+          description: The estimated time a space is expected to be occupied.
+          format: date-time
+          nullable: true
+        occupancyStartTime:
+          type: string
+          description: The actual time space is occupied
+          format: date-time
+          nullable: true
+        spaceId:
+          $ref: '#/components/schemas/Reference'
+        occupancyLevel:
+          $ref: '#/components/schemas/OccupancyLevel'
+      description: Identifies when a space was occupied and for how long.
+    DemandTable:
+      type: object
+      properties:
+        frequency:
+          pattern: ^P(?!$)(\d+Y)?(\d+M)?(\d+W)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+S)?)?$
+          type: string
+          description: >-
+            ISO8601 format definition of an interval of time - format
+            [PnnYnnMnnDTnnHnnMnnS]
+          nullable: true
+        timestamp:
+          type: string
+          description: Timestamp when the demand table data was compiled.
+          format: date-time
+          nullable: true
+        demandType:
+          type: array
+          description: Occupancy for area
+          items:
+            $ref: '#/components/schemas/DemandType'
+        demandSpaceType:
+          type: array
+          description: Occupancy for single spaces
+          items:
+            $ref: '#/components/schemas/DemandSpaceType'
+      description: >-
+        Table structure which defines the parameters of reporting actual usage
+        of parking in a Hierarchy Element
+    DemandType:
+      required:
+        - recordDateTime
+      type: object
+      properties:
+        count:
+          minimum: 0
+          type: integer
+          description: Number of occupied spaces.
+          format: int32
+          nullable: true
+        occupancyCalculation:
+          type: string
+          nullable: true
+          enum:
+            - counted
+            - derived
+            - expected
+            - verified
+        percentage:
+          maximum: 100
+          exclusiveMaximum: false
+          minimum: 0
+          exclusiveMinimum: false
+          type: number
+          description: Percent of spaces occupied.
+          format: float
+          nullable: true
+        recordDateTime:
+          type: string
+          description: When data in the record was compiled.
+          format: date-time
+      description: This table is dedicated to reporting on actual occupancy in an area.
+    EMailCommonData:
+      type: object
+      properties:
+        primaryFlag:
+          type: boolean
+          description: 'If [TRUE], this indicates that this is the primary point of contact'
+          nullable: true
+        typeCode:
+          type: string
+          nullable: true
+          enum:
+            - customerService
+            - general
+            - helpdesk
+            - individual
+      description: A class defining information concerning an email point of contact.
+    EntranceOpenTime:
+      type: object
+      properties:
+        validity:
+          $ref: '#/components/schemas/Validity'
+        periods:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          items:
+            $ref: '#/components/schemas/Period'
+      description: >-
+        Specification of periods of times when parking entrance(s) are open for
+        vehicle movements.
+    ExitOpenTime:
+      type: object
+      properties:
+        validity:
+          $ref: '#/components/schemas/Validity'
+        periods:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          items:
+            $ref: '#/components/schemas/Period'
+      description: >-
+        Specification of periods of times when parking exit(s) are open for
+        vehicle movements.
+    GeoJsonMultiPolygon:
+      required:
+        - type
+      type: object
+      properties:
+        type:
+          type: string
+          description: the geometry type
+          enum:
+            - Point
+            - LineString
+            - Polygon
+            - MultiPoint
+            - MultiLineString
+            - MultiPolygon
+        coordinates:
+          type: array
+          items:
+            type: array
+            items:
+              type: array
+              items:
+                type: array
+                items:
+                  type: number
+      description: GeoJson MultiPolygon
+    GeoJsonPoint:
+      required:
+        - type
+      type: object
+      properties:
+        type:
+          type: string
+          description: the geometry type
+          enum:
+            - Point
+            - LineString
+            - Polygon
+            - MultiPoint
+            - MultiLineString
+            - MultiPolygon
+        coordinates:
+          maxItems: 2
+          minItems: 2
+          type: array
+          description: GeoJson 2D Point
+          items:
+            type: number
+            description: GeoJson 2D Point
+      description: GeoJson point
+    HeightCoordinate:
+      required:
+        - heightValue
+      type: object
+      properties:
+        heightType:
+          type: string
+          nullable: true
+          enum:
+            - ellipsoidalHeight
+            - gravityRelatedHeight
+            - relativeHeight
+        heightValue:
+          type: string
+          description: >-
+            Value in defined unit (metres) for the height measured vertically at
+            to the planar coordinates the point corresponding. Note alteration
+            from DATEXII definition.
+      description: Third coordinate for points defined geodetically
+    HierarchyElementRecord:
+      required:
+        - creationTime
+      type: object
+      properties:
+        creationTime:
+          type: string
+          description: >-
+            Date/time that this version of the place facility record was
+            created.
+          format: date-time
+        creator:
+          $ref: '#/components/schemas/VersionedReference'
+        creatorEmail:
+          type: string
+          format: email
+          nullable: true
+      description: >-
+        A collection of information concerning the creation of a hierarchy
+        element
+    HierarchyElementReference:
+      required:
+        - elementId
+      type: object
+      properties:
+        elementId:
+          $ref: '#/components/schemas/VersionedReference'
+        demandTable:
+          type: array
+          items:
+            $ref: '#/components/schemas/DemandTable'
+        supply:
+          type: array
+          items:
+            $ref: '#/components/schemas/Supply'
+      description: >-
+        A class providing a unique reference identifier for a discrete part of
+        the parking place hierarchy. This can indicate a campus, parking place,
+        hierarchy element, identifiable area or space.
+      nullable: true
+    ImageAlbum:
+      type: object
+      properties:
+        photo:
+          type: string
+          description: Represents a Url for an internet accessible resource
+          nullable: true
+        caption:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        logoImage:
+          type: array
+          description: >-
+            URL to location of logo(s) the parking operator wishes to associate
+            with this parking facility (e.g. their logo, schemes [ParkMark])
+          items:
+            type: string
+            description: >-
+              URL to location of logo(s) the parking operator wishes to
+              associate with this parking facility (e.g. their logo, schemes
+              [ParkMark])
+      description: A class defining information relating to images for a parking facility.
+    IsoNamedArea:
+      required:
+        - areaName
+        - subdivisionCode
+        - subdivisionType
+      type: object
+      properties:
+        areaName:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        country:
+          pattern: '^[a-z]{2}$'
+          type: string
+          description: EN ISO 3166-1 two-character country code.
+          nullable: true
+          example: es
+        subdivisionCode:
+          maxLength: 3
+          minLength: 0
+          type: string
+          description: ISO 3166-2 country sub-division code (up to 3 characters).
+        subdivisionType:
+          type: string
+          enum:
+            - administrativeAtoll
+            - administrativeRegion
+            - administrativeTerritory
+            - arcticRegion
+            - autonomousCity
+            - autonomousCityInNorthAfrica
+            - autonomousCommunity
+            - autonomousDistrict
+            - autonomousProvince
+            - autonomousRegion
+            - canton
+            - capitalCity
+            - city
+            - cityMunicipality
+            - cityOfCountyRight
+            - commune
+            - councilArea
+            - country
+            - county
+            - department
+            - dependency
+            - district
+            - districtMunicipality
+            - districtWithSpecialStatus
+            - entity
+            - geographicalEntity
+            - governorate
+            - laender
+            - localCouncil
+            - londonBorough
+            - metropolitanArea
+            - metropolitanDepartment
+            - metropolitanDistrict
+            - metropolitanRegion
+            - municipality
+            - other
+            - overseasDepartment
+            - overseasRegion
+            - overseasTerritorialCollectivity
+            - parish
+            - province
+            - quarter
+            - region
+            - republic
+            - republicanCity
+            - selfGovernedPart
+            - specialMunicipality
+            - state
+            - territorialUnit
+            - territory
+            - twoTierCounty
+            - unitaryAuthority
+            - ward
+      description: The ISO 3166-2 representation for the named area.
+    Marketing:
+      type: object
+      properties:
+        imageAlbums:
+          type: array
+          description: Image albums associated
+          items:
+            $ref: '#/components/schemas/ImageAlbum'
+        webURLs:
+          type: array
+          items:
+            type: string
+      description: >-
+        Universal resource locator (URI) that points towards a web site carrying
+        marketing material supplied.
+      nullable: true
+    MultilingualStringInnerDto:
+      required:
+        - language
+        - string
+      type: object
+      properties:
+        language:
+          pattern: '^[a-z]{2}$'
+          type: string
+          description: 'ISO 639-1:2002 language code'
+          example: en
+        string:
+          type: string
+          description: Translated string
+      description: >-
+        Multilingual string, represented as an array of SpecificLanguageString
+        objects, each containing a language code (using ISO 639-1:2002) and the
+        translated string
+    NutsNamedArea:
+      required:
+        - areaName
+        - nutsCode
+        - nutsCodeType
+      type: object
+      properties:
+        areaName:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        country:
+          pattern: '^[a-z]{2}$'
+          type: string
+          description: EN ISO 3166-1 two-character country code.
+          nullable: true
+          example: es
+        nutsCode:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        nutsCodeType:
+          type: string
+          enum:
+            - lau1Code
+            - lau2Code
+            - nuts1Code
+            - nuts2Code
+            - nuts3Code
+      description: >-
+        The NUTS-Code representation for the named area (Nomenclature of
+        territorial units for statistics) or its LAU code representation (Local
+        Administrative Unit).
+    OccupancyLevel:
+      required:
+        - occupancyIndicator
+      type: object
+      properties:
+        occupancyIndicator:
+          $ref: '#/components/schemas/ReferencedCodeListEntry'
+      description: Defines an occupancy level as specified by the data supplier.
+      nullable: true
+    OperatingRestrictions:
+      required:
+        - operatingRestriction
+      type: object
+      properties:
+        operatingRestriction:
+          type: string
+          enum:
+            - busOnly
+            - busStop
+            - carpoolOnly
+            - commercialVehicleOnly
+            - disabledPersonPermitOnly
+            - electricVehicleOnly
+            - freeParking
+            - governmentVehicleOnly
+            - loadingZone
+            - loadingZoneCommercial
+            - media
+            - noParking
+            - noWaiting
+            - parkingTimeLimit
+            - residentialPermitOnly
+            - snow
+            - streetCleaning
+            - taxiOnly
+            - valetOnly
+        operatingRestrictionContext:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+      description: A class defining operating restrictions.
+    OperatingTime:
+      type: object
+      properties:
+        validity:
+          $ref: '#/components/schemas/Validity'
+        periods:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          items:
+            $ref: '#/components/schemas/Period'
+      description: >-
+        The times of operation of a parking facility - this is the time that the
+        facility operates, not times of accessibility
+      nullable: true
+    OverallPeriod:
+      required:
+        - overallStartTime
+      type: object
+      properties:
+        overallStartTime:
+          type: string
+          description: Start of bounding period of validity defined by date and time.
+          format: date-time
+        overallEndTime:
+          type: string
+          description: End of bounding period of validity defined by date and time.
+          format: date-time
+          nullable: true
+        validPeriods:
+          type: array
+          description: >-
+            A single time period, a recurring time `Period` period or a set of
+            different recurring time periods during which validity is true.
+          items:
+            $ref: '#/components/schemas/Period'
+        exceptionPeriods:
+          type: array
+          description: >-
+            A single time period, a recurring time Period period or a set of
+            different recurring time periods during which validity is false.
+          items:
+            $ref: '#/components/schemas/Period'
+      description: >-
+        A continuous or discontinuous period of validity defined by overall
+        bounding start and end times and the possible intersection of valid
+        periods (potentially recurring) with the complement of exception periods
+        (also potentially recurring).
+    PaymentMethod:
+      type: object
+      properties:
+        paymentMeans:
+          type: array
+          description: The means of payment available
+          items:
+            type: string
+            description: The means of payment available
+            enum:
+              - cashBillsOnly
+              - cashCoinsAndBills
+              - cashCoinsOnly
+              - mobileAccount
+              - paymentCreditCard
+              - paymentDebitCard
+              - paymentValueCard
+              - prepay
+              - tollTag
+              - unknown
+        paymentMode:
+          type: array
+          description: Defines the timing of the parking or other mobility related payment
+          items:
+            type: string
+            description: >-
+              Defines the timing of the parking or other mobility related
+              payment
+            enum:
+              - other
+              - payAfterExit
+              - payAndExit
+              - payOnEntry
+              - payPriorToExit
+              - prepay
+        brandsAcceptedCodeList:
+          type: array
+          description: List of accepted brands for payment cards (by code)
+          items:
+            $ref: '#/components/schemas/BrandsAcceptedCodeList'
+        brandsAcceptedText:
+          type: array
+          description: 'List of accepted brands for payment cards (by name) '
+          items:
+            $ref: '#/components/schemas/BrandsAcceptedText'
+      description: Provides information on the means of payment available
+    Period:
+      type: object
+      properties:
+        periodName:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        startOfPeriod:
+          type: string
+          description: Start of period
+          format: date-time
+          nullable: true
+        endOfPeriod:
+          type: string
+          description: End of a period
+          format: date-time
+          nullable: true
+        recurringDayWeekMonthPeriod:
+          type: array
+          description: >-
+            A recurring period defined in terms of days `DayWeekMonth` of the
+            week, weeks of the month and months of the year.
+          items:
+            $ref: '#/components/schemas/DayWeekMonth'
+        recurringSpecialDay:
+          type: array
+          description: A recurring period in terms of special days
+          items:
+            $ref: '#/components/schemas/PeriodRecurringSpecialDayInnerDto'
+        recurringTimePeriodOfDay:
+          type: array
+          description: A recurring period of a day
+          items:
+            $ref: '#/components/schemas/TimePeriodOfDay'
+      description: >-
+        A continuous time period or a set of discontinuous time periods defined
+        by the intersection of a set of criteria all within an overall
+        delimiting interval.
+    PeriodRecurringSpecialDayInnerDto:
+      required:
+        - intersectWithApplicableDays
+        - publicHolidayName
+        - specialDayType
+      type: object
+      properties:
+        publicHolidayName:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        intersectWithApplicableDays:
+          type: boolean
+          description: >-
+            When [TRUE], the period is the intersection of applicable days and
+            this special day. When [FALSE], the period is the union of
+            applicable days and this special day
+        specialDayType:
+          type: string
+          enum:
+            - dayBeforePublicHoliday
+            - dayFollowingPublicHoliday
+            - inLieuOfPublicHoliday
+            - longWeekendDay
+            - other
+            - publicEventDay
+            - publicHoliday
+            - schoolDay
+            - schoolHolidays
+      description: A recurring period in terms of special days
+    Place:
+      required:
+        - hierarchyElementRecord
+        - id
+        - layer
+        - name
+        - timeZone
+        - type
+        - version
+      type: object
+      properties:
+        id:
+          maxLength: 2147483647
+          minLength: 1
+          type: string
+          description: Unique identifier for object
+        version:
+          minimum: 1
+          type: integer
+          description: Positive integer representing the object version
+          format: int32
+        name:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        description:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        layer:
+          minimum: 0
+          type: integer
+          description: >-
+            Indicator of the position of this hierarchy element in the specific
+            hierarchy, with the top of the hierarchy numbered layer 0.
+          format: int32
+        type:
+          type: string
+          enum:
+            - campus
+            - identifiedArea
+            - parkingPlace
+            - space
+            - subplaceElement
+        aliases:
+          type: array
+          description: Alternative names for the hierarchy element
+          items:
+            type: array
+            description: Alternative names for the hierarchy element
+            items:
+              $ref: '#/components/schemas/MultilingualStringInnerDto'
+        parentId:
+          $ref: '#/components/schemas/VersionedReference'
+        childIds:
+          type: array
+          description: >-
+            The identity of one or several child nodes directly related to this
+            hierarchy element.
+          items:
+            $ref: '#/components/schemas/VersionedReference'
+        operatorDefinedReference:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        hierarchyElementRecord:
+          $ref: '#/components/schemas/HierarchyElementRecord'
+        rightSpecifications:
+          type: array
+          description: RightSpecifications associated to the element
+          items:
+            $ref: '#/components/schemas/VersionedReference'
+        hierarchyElementReference:
+          $ref: '#/components/schemas/HierarchyElementReference'
+        occupancyLevel:
+          $ref: '#/components/schemas/OccupancyLevel'
+        characteristics:
+          type: array
+          description: Characteristics for hierarchy element
+          items:
+            $ref: '#/components/schemas/Characteristics'
+        contacts:
+          type: array
+          description: Contact info for hierarchy element
+          items:
+            $ref: '#/components/schemas/CommonComponentsContactsInnerDto'
+        marketing:
+          $ref: '#/components/schemas/Marketing'
+        operatingRestrictions:
+          type: array
+          description: Operating restrictions for hierarchy element
+          items:
+            $ref: '#/components/schemas/OperatingRestrictions'
+        rgbColours:
+          type: array
+          description: Colours associated with hierarchy element
+          items:
+            $ref: '#/components/schemas/RGBColour'
+        times:
+          $ref: '#/components/schemas/Times'
+        paymentMethods:
+          type: array
+          description: Accepted payment methods at hierarchy element
+          items:
+            $ref: '#/components/schemas/PaymentMethod'
+        safetyStandardClassifications:
+          type: array
+          description: Safety standard classifications
+          items:
+            $ref: '#/components/schemas/SafetyStandardClassification'
+        timeZone:
+          type: string
+          description: 'IANA time-zone (see http://www.iana.org/time-zones)'
+        placeStreetAddress:
+          type: array
+          description: Place street address
+          items:
+            $ref: '#/components/schemas/Address'
+        placeBoundedZone:
+          type: array
+          description: Place bounded zone
+          items:
+            $ref: '#/components/schemas/AreaLocationDto'
+        indicativePlacePointLocation:
+          type: array
+          description: Indicative place point location
+          items:
+            $ref: '#/components/schemas/PointLocationDto'
+      description: >-
+        A place or location used for parking, loading, unloading, standing, or
+        some other mobility or transport related activity. Place typically
+        identifies a parking structure, surface lot or on street parking zone
+    PointByCoordinates:
+      required:
+        - pointCoordinates
+      type: object
+      properties:
+        pointCoordinates:
+          $ref: '#/components/schemas/PointCoordinates'
+        bearing:
+          maximum: 359
+          minimum: 0
+          type: integer
+          description: >-
+            A bearing at the point measured in degrees (0 - 359). Unless
+            otherwise specified the reference direction corresponding to 0
+            degrees is North.
+          format: int32
+          nullable: true
+      description: >-
+        A single point defined only by a coordinate set with an optional bearing
+        direction
+    PointCoordinates:
+      required:
+        - epsgCode
+        - x
+        - 'y'
+      type: object
+      properties:
+        epsgCode:
+          pattern: '^EPSG:\d{4}$'
+          type: string
+          description: >-
+            Code referencing a specific Coordinate Reference System in the EPSG
+            (European Petroleum Survey Group) register
+          example: 'EPSG:3857'
+        x:
+          type: number
+          description: >-
+            X coordinate in the defined Coordinate Referencing System indicated
+            by the EPSG code
+          format: float
+        'y':
+          type: number
+          description: >-
+            Y coordinate in the defined Coordinate Referencing System indicated
+            by the EPSG code
+          format: float
+        heightCoordinates:
+          maxItems: 3
+          minItems: 0
+          type: array
+          description: Height coordinate
+          items:
+            $ref: '#/components/schemas/HeightCoordinate'
+      description: >-
+        A pair of planar coordinates defining the geodetic position of a single
+        point using a defined Coordinate Reference System.
+    PointLocationDto:
+      type: object
+      description: Indicative place point location
+      oneOf:
+        - $ref: '#/components/schemas/PointByCoordinates'
+        - $ref: '#/components/schemas/GeoJsonPoint'
+    RGBColour:
+      required:
+        - rgbBlueValue
+        - rgbGreenValue
+        - rgbRedValue
+      type: object
+      properties:
+        colourName:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: >-
+            Multilingual string, represented as an array of
+            SpecificLanguageString objects, each containing a language code
+            (using ISO 639-1:2002) and the translated string
+          items:
+            $ref: '#/components/schemas/MultilingualStringInnerDto'
+        rgbBlueValue:
+          maximum: 255
+          minimum: 0
+          type: integer
+          description: The blue value of the RGB colour (0..255).
+          format: int32
+        rgbGreenValue:
+          maximum: 255
+          minimum: 0
+          type: integer
+          description: The green value of the RGB colour (0..255).
+          format: int32
+        rgbRedValue:
+          maximum: 255
+          minimum: 0
+          type: integer
+          description: The red value of the RGB colour (0..255).
+          format: int32
+      description: >-
+        An RGB colour described by values for red, green and blue (0..255) as
+        well as an optional name.
+    Reference:
+      required:
+        - className
+        - id
+      type: object
+      properties:
+        className:
+          maxLength: 2147483647
+          minLength: 1
+          type: string
+          description: The class name of the referenced object in PascalCase
+          example: UKNumberPlate
+        id:
+          type: string
+          description: 'The unique identifier within the given class '
+          example: LA51ABC
+      description: >-
+        A reference to an identifiable managed object where the identifier is
+        unique. It is composed of a string identifying the class of the
+        referenced object and a unique string identifier.
+      nullable: true
+    ReferencedCodeListEntry:
+      required:
+        - entryDefinedValue
+      type: object
+      properties:
+        codeListEntryId:
+          $ref: '#/components/schemas/Reference'
+        codeListId:
+          $ref: '#/components/schemas/VersionedReference'
+        entryDefinedValue:
+          type: string
+          description: >-
+            free-text defined text (name) for the code list entry being
+            referenced
+      description: >-
+        Class providing structure to support reference to an entry in a
+        previously defined user-defined code list.
+      nullable: true
+    SafetyStandardClassification:
+      type: object
+      properties:
+        securityFeature:
+          $ref: '#/components/schemas/ReferencedCodeListEntry'
+        securityLevel:
+          $ref: '#/components/schemas/ReferencedCodeListEntry'
+      description: >-
+        Use this class to classification type/level for security schemes for a
+        place
+    Supply:
+      required:
+        - supplyQuantity
+        - supplyViewType
+      type: object
+      properties:
+        supplyViewType:
+          type: string
+          enum:
+            - spaceView
+            - vehicleView
+        supplyQuantity:
+          type: integer
+          description: >-
+            Indicates the numeric value of available parking or other space
+            uses.
+          format: int32
+        supplyValidityStart:
+          type: string
+          description: Valid start date/time for the supply
+          format: date-time
+          nullable: true
+        supplyValidityEnd:
+          type: string
+          description: Valid end date/time for the supply
+          format: date-time
+          nullable: true
+      description: >-
+        A class defining concepts relating the parameters of the supply of
+        parking. This is the total number of spaces usable for parking or other
+        mobility opertions. It can be defined as demarcated spaces or
+        non-demarcated.
+    TelephoneContact:
+      type: object
+      properties:
+        areaCode:
+          type: string
+          description: The area code element of a telephone number.
+          nullable: true
+        extensionNumbers:
+          type: array
+          description: >-
+            any extension number typically within a larger organisation's
+            telephone exchange system.
+          items:
+            type: string
+            description: >-
+              any extension number typically within a larger organisation's
+              telephone exchange system.
+        ituCountryCode:
+          type: string
+          description: >-
+            Country calling codes or country dial in codes are telephone dialing
+            prefixes for the member countries or regions of the International
+            Telecommunication Union (ITU). They are defined by the ITU-T in
+            standards E.123 and E.164.
+          nullable: true
+        localNumbers:
+          type: array
+          description: The local code element of a telephone number.
+          items:
+            type: string
+            description: The local code element of a telephone number.
+      description: >-
+        A class defining information relating to a specific telephone point of
+        contact.
+    TimePeriodOfDay:
+      required:
+        - endTimeOfPeriod
+        - startTimeOfPeriod
+      type: object
+      properties:
+        startTimeOfPeriod:
+          type: string
+          description: Start of time period
+        endTimeOfPeriod:
+          type: string
+          description: End time of period
+      description: Specification of a continuous period of time within a 24 hour period.
+    Times:
+      required:
+        - available24hours
+        - openAllYear
+        - openingTimesNotSpecified
+        - openingTimesUnknown
+      type: object
+      properties:
+        available24hours:
+          type: boolean
+          description: >-
+            If [TRUE], the identified parking hierarchy entities is available 24
+            hours per day.
+        openAllYear:
+          type: boolean
+          description: >-
+            If [TRUE], the identified parking hierarchy entities is available
+            every day each year.
+        openingTimesNotSpecified:
+          type: boolean
+          description: 'If [TRUE], the time periods are not specified.'
+        openingTimesUnknown:
+          type: boolean
+          description: 'If [TRUE], the time periods are not known.'
+        accessAndEgress:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccessAndEgressDto'
+        operatingTime:
+          $ref: '#/components/schemas/OperatingTime'
+      description: >-
+        Defines forms of time period for specific purposes. There are four
+        distinct time domain concepts:   * Hours of operation (times at which
+        the facility may be used) * Access and egress (times it is possible to
+        enter and leave the facility) * Entrance open time * Exit open time
+      nullable: true
+    Validity:
+      required:
+        - validityTimeSpecification
+      type: object
+      properties:
+        validityStatus:
+          type: string
+          nullable: true
+          enum:
+            - active
+            - definedByValidityTimeSpec
+            - planned
+            - suspended
+        validityTimeSpecification:
+          $ref: '#/components/schemas/OverallPeriod'
+      description: >-
+        Specification of validity, either explicitly or by a validity time
+        period specification which may be discontinuous.
+      nullable: true
+    VersionedReference:
+      required:
+        - id
+        - version
+      type: object
+      properties:
+        id:
+          maxLength: 2147483647
+          minLength: 1
+          type: string
+          description: Unique identifier
+        version:
+          minimum: 1
+          type: integer
+          description: Version number
+          format: int32
+        className:
+          pattern: '^([A-Z][a-z0-9]+)+'
+          type: string
+          description: >-
+            Class name of the referenced object. It's optional, as it might be
+            implied by the attribute name using this reference
+          nullable: true
+      description: >-
+        A reference to an identifiable version managed object where the
+        combination of the identifier and version is unique. It comprises an
+        identifier (e.g. GUID), a version (NonNegativeInteger) and a string
+        identifying the class of the referenced object.
+    contingent:
+      type: object
+      properties:
+        id:
+          type: string
+          description: A generated and unique uuid
+          format: uuid
+          nullable: true
+          example: 123e4567-e89b-12d3-a456-426614174000
+        value:
+          type: integer
+          description: Counter capacity for the current day
+          format: int32
+          nullable: true
+          example: 100
+        dayOfWeek:
+          type: string
+          description: Day of week
+          nullable: true
+          example: TUESDAY
+          enum:
+            - MONDAY
+            - TUESDAY
+            - WEDNESDAY
+            - THURSDAY
+            - FRIDAY
+            - SATURDAY
+            - SUNDAY
+      description: Allocated maximum number of places for the counter by day
+    counter:
+      type: object
+      properties:
+        id:
+          type: string
+          description: A generated and unique uuid related to each counter
+          format: uuid
+          nullable: true
+          example: b859657f-42f8-4ac2-aed1-19da1169565d
+        businessId:
+          type: string
+          description: >-
+            Counter business generated automatically when creating a counter, it
+            is unique by counter.         **The below table defines the counter
+            business id  structure**  | Object           |
+            Format                    | A                             |
+            B                             |               i                    
+            | example                            | | ---------------- |
+            ---------------------     | ------------                 
+            |-----------                    |
+            ----------------------------------- |
+            ---------------------------------- | | Physical counter |
+            ABnnnnnnnnn               |P &nbsp;&nbsp;&nbsp;&nbsp;|H  
+            &nbsp;&nbsp;&nbsp;&nbsp;        |               
+            -                    | PHFC9763070                        |
+            |                  |                          
+            |                               |                              
+            |                                     |
+            &nbsp;                        | | Standard counter |
+            ABnnnnnnnnniiiiiiiii&nbsp;|S &nbsp;&nbsp;&nbsp;&nbsp;     |T 
+            &nbsp;&nbsp;&nbsp;&nbsp;    |RESERVED,  &nbsp;                    |
+            STFC9763070RESERVED                | |                 
+            |                           |                              
+            |                               |NON_RESERVED
+            &nbsp;                  | STFC9763070NON_RESERVED             |
+            |                  |                          
+            |                               |                              
+            |PREBOOKED &nbsp;                     | STFC9763070PREBOOKED      
+            |  
+          nullable: true
+          example: STFC9878338RESERVED
+        category:
+          type: string
+          description: 'Counter category: [RESERVED,NON_RESERVED,PREBOOKED..] '
+          nullable: true
+          example: RESERVED
+        available:
+          type: integer
+          description: Number of regulated available places ( cannot be a negative value )
+          format: int32
+          nullable: true
+          example: 80
+        occupied:
+          type: integer
+          description: Number of regulated occupied places ( cannot be a negative value )
+          format: int32
+          nullable: true
+          example: 20
+        real_available:
+          type: integer
+          description: Number of effective available places ( can be a negative value )
+          format: int32
+          nullable: true
+          example: 80
+          deprecated: true
+        real_occupied:
+          type: integer
+          description: Number of effective occupied places ( can be a negative value )
+          format: int32
+          nullable: true
+          example: 20
+          deprecated: true
+        capacity:
+          type: integer
+          description: Counter total capacity
+          format: int32
+          nullable: true
+          example: 100
+        threshold:
+          type: integer
+          description: >-
+            Threshold of available places to consider the counter as full
+            (currently not used)
+          format: int32
+          nullable: true
+          example: 1
+        full:
+          type: boolean
+          description: 'Status of the counter: full/free'
+          nullable: true
+          example: false
+        validityDate:
+          type: string
+          description: Counter validity date (currently not used)
+          format: date-time
+          nullable: true
+          example: '2024-05-08T13:00:00Z'
+        contingents:
+          type: array
+          items:
+            $ref: '#/components/schemas/contingent'
+        locationId:
+          type: string
+          description: Facility location  id
+          nullable: true
+          example: SB.12365.2363.3658.11235
+        facilityId:
+          type: string
+          description: Facility id
+          nullable: true
+          example: b868123a-53f8-4ac2-aed1-19da1169565d
+        facilityName:
+          type: string
+          description: Facility name
+          nullable: true
+          example: Facility 1234
+        counterType:
+          type: string
+          description: Counter type
+          nullable: true
+          example: SPECIFIC
+          enum:
+            - PHYSICAL
+            - SPECIFIC
+            - USAGE
+            - DEFAULT
+            - AGGREGATION
+        counterMode:
+          type: string
+          description: >-
+            Operational counter mode impacting the transaction
+            management         **The below table defines the transaction
+            management action in relation between counter state and counter
+            mode  | Counter State    | Mode (Override)           |
+            Action                        | | ---------------- |
+            ---------------------     | ------------                  | |
+            free             | normal                    |transaction manager to
+            allow parking| | free             | ignored                  
+            |transaction manager to allow parking| | free             |
+            blocked                   |transaction manager to disable parking  
+            | | occupied         | normal                    |transaction
+            manager to disable parking | | occupied         |
+            ignored                   |transaction manager to allow parking | |
+            occupied         | blocked                   |transaction manager to
+            disable parking|  
+          nullable: true
+          example: NORMAL
+          enum:
+            - NORMAL
+            - IGNORED
+            - BLOCKED
+        percentage:
+          type: number
+          description: Calculated value = percentage of occupancy/capacity
+          format: float
+          nullable: true
+          example: 20
+        product:
+          $ref: '#/components/schemas/product'
+      description: >-
+        Details of the product access profile, the days and time when the
+        product can be used
+    localized-text:
+      type: object
+      properties:
+        language:
+          type: string
+          description: Field language
+          nullable: true
+          example: DE
+        country:
+          type: string
+          description: Field country
+          nullable: true
+          example: MM
+        text:
+          type: string
+          description: Text
+          nullable: true
+          example: Text in DE language
+      description: Localized text to support different languages
+    product:
+      type: object
+      properties:
+        id:
+          type: string
+          description: A generated and unique uuid related to each product
+          format: uuid
+          nullable: true
+          example: 5da70107-5600-448b-94eb-51a5556f7856
+        productName:
+          type: string
+          description: Product name
+          nullable: true
+          example: Product 1
+        productGroup:
+          $ref: '#/components/schemas/product-group'
+        productStatus:
+          type: string
+          description: Product status
+          nullable: true
+          example: Active
+        productNumber:
+          type: string
+          description: Product business id in the PAM api
+          nullable: true
+          example: PP000001
+      description: the product in case of USAGE counter
+      nullable: true
+    product-group:
+      type: object
+      properties:
+        productGroupId:
+          type: integer
+          format: int32
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        counterType:
+          type: string
+          nullable: true
+          enum:
+            - PREBOOKED
+            - RESERVED
+            - NON_RESERVED
+            - DISCOUNT
+        productGroupType:
+          type: string
+          nullable: true
+        names:
+          uniqueItems: true
+          type: array
+          items:
+            $ref: '#/components/schemas/localized-text'
+        productGroupName:
+          type: string
+          nullable: true
+      description: The product group details
+      nullable: true
+    CounterValueDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: A generated and unique uuid related to each counter
+          format: uuid
+          nullable: true
+          example: b859657f-42f8-4ac2-aed1-19da1169565d
+        counterMode:
+          type: string
+          description: 'Counter Mode: [IGNORED,NORMAL,BLOCKED] '
+          nullable: true
+          example: IGNORED
+        available:
+          type: integer
+          description: Number of regulated available places ( cannot be a negative value )
+          format: int32
+          nullable: true
+          example: 80
+        occupied:
+          type: integer
+          description: Number of regulated occupied places ( cannot be a negative value )
+          format: int32
+          nullable: true
+          example: 20
+    CountersDto:
+      type: object
+      properties:
+        facilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/facility-counter'
+        customers:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerCountersDto'
+      nullable: true
+    CountersPageDto:
+      type: object
+      properties:
+        content:
+          $ref: '#/components/schemas/CountersDto'
+        pageNumber:
+          type: integer
+          format: int32
+          nullable: true
+          example: 0
+        pageSize:
+          type: integer
+          format: int32
+          nullable: true
+          example: 5
+        totalPages:
+          type: integer
+          format: int32
+          nullable: true
+          example: 2
+        totalElements:
+          type: integer
+          format: int32
+          nullable: true
+          example: 10
+    CustomerCountersDto:
+      type: object
+      properties:
+        customerBusinessId:
+          type: string
+          description: customer businessId
+          nullable: true
+          example: C125
+        customerName:
+          type: string
+          description: customer name
+          nullable: true
+          example: Customer A
+        contractBusinessId:
+          type: string
+          description: contract businessId
+          nullable: true
+          example: 2024xf6c2
+        contractLabel:
+          type: string
+          description: contract name
+          nullable: true
+          example: Contract-2024xf6c2
+        facilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/facility-counter'
+    ProductCounterDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: A generated and unique uuid related to each product
+          format: uuid
+          nullable: true
+          example: 5da70107-5600-448b-94eb-51a5556f7856
+        name:
+          type: string
+          description: Product/ProductGroup name
+          nullable: true
+          example: Product 1
+        number:
+          type: string
+          description: Business id in the PAM api
+          nullable: true
+          example: PP000001
+        type:
+          type: string
+          description: Product/ProductGroup type
+          nullable: true
+          example: FLEX_PRODUCT
+        names:
+          uniqueItems: true
+          type: array
+          items:
+            $ref: '#/components/schemas/localized-text'
+        contingentAmount:
+          type: integer
+          description: Number of places
+          format: int64
+          nullable: true
+          example: 5
+        occupied:
+          type: integer
+          description: Number of regulated occupied places ( cannot be a negative value )
+          format: int64
+          nullable: true
+          example: 4
+    facility-counter:
+      type: object
+      properties:
+        id:
+          type: string
+          description: A generated and unique uuid related to each facility counter
+          format: uuid
+          nullable: true
+          example: b859657f-42f8-4ac2-aed1-19da1169565d
+        locationId:
+          type: string
+          description: Facility location  id
+          nullable: true
+          example: SB.12365.2363.3658.11235
+        facilityId:
+          type: string
+          description: Facility id
+          nullable: true
+          example: b868123a-53f8-4ac2-aed1-19da1169565d
+        facilityName:
+          type: string
+          description: Facility name
+          nullable: true
+          example: Facility 1234
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductCounterDto'
+      description: Details of the facility
+    CounterFilterDto:
+      type: object
+      properties:
+        counterTypeList:
+          type: string
+          description: >-
+            List of counter types to be used in the filter (PHYSICAL, SPECIFIC,
+            USAGE..)
+          nullable: true
+          example: SPECIFIC
+        facilityNumberList:
+          type: string
+          description: List of facilities ids to be used in the filter
+          nullable: true
+          example: 'FC5579040,FC3439563'
+        productNumberList:
+          type: string
+          description: List of products ids to be used in the filter
+          nullable: true
+          example: 'PP000010,PP000011'
+        productGroupList:
+          type: string
+          description: List of product groups ids to be used in the filter
+          nullable: true
+          example: '3'
+        productGroupTypeList:
+          type: string
+          description: >-
+            List of product group types to be used in the filter (VISIT,
+            SHOW_UPS, EMPLOYEE, SEASON_PARKER, FLEX_PRODUCT)
+          nullable: true
+          example: FLEX_PRODUCT
+        aggregationType:
+          type: string
+          description: specifies the aggregation type (product/product group)
+          nullable: true
+          example: AggregationByProduct
+        usedOnly:
+          type: boolean
+          description: >-
+            if true, return only used counters (count != 0) else return all
+            counters
+          nullable: true
+        customerList:
+          type: array
+          example:
+            - C2023PJ7r4Cj
+            - C2024CWmJTQB
+          items:
+            type: string
+            example: '["C2023PJ7r4Cj","C2024CWmJTQB"]'
+    DefaultCounter:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: >-
+            Id of the counter<br/>  Id's are generally assigned this way:   - 0:
+            PREBOOKED<br/>   - 1: NON_RESERVED<br/>   - 2: RESERVED<br/>   - 3:
+            Facility counter<br/>
+          format: int32
+          nullable: true
+          example: 1
+        type:
+          type: integer
+          description: >-
+            Type of the counter   - 0: standard-counter <br/>   - 1:
+            level-counter <br/>   - 2: sum-counter
+          format: int32
+          nullable: true
+          example: 0
+        present:
+          type: integer
+          description: Number of places which are already used
+          format: int32
+          nullable: true
+          example: 1801
+        max:
+          type: integer
+          description: This value reflects the maximum available places.
+          format: int32
+          nullable: true
+          example: 1900
+        free:
+          type: integer
+          description: This value reflects the available places.
+          format: int32
+          nullable: true
+          example: 1900
+        counterType:
+          type: string
+          description: >-
+            Type of the counter   - PREBOOKED when id = 0<br/>   - NON_RESERVED
+            when id = 1 <br/>   - RESERVED when id = 2 <br/>   - PHYSICAL when
+            id = 3
+          nullable: true
+          example: NON_RESERVED
+        status-value:
+          type: integer
+          description: >-
+            Value of the status   - 0: free <br/>   - 1: occupied by values
+            <br/>   - 2: occupied manually <br/>   - 3: blocked
+          format: int32
+          nullable: true
+          example: 0
+      description: 'Exacty one counter, can be a standard-counter or a level-counter'
+    PublicGetStandardCounters200ResponseEconnectDto:
+      type: object
+      properties:
+        facility:
+          type: array
+          items:
+            $ref: >-
+              #/components/schemas/PublicGetStandardCounters200ResponseFacilityInnerEconnectDto
+    PublicGetStandardCounters200ResponseFacilityInnerCountersEconnectDto:
+      type: object
+      properties:
+        facility-no:
+          type: integer
+          format: int32
+          nullable: true
+        standard-counter:
+          type: array
+          items:
+            $ref: '#/components/schemas/DefaultCounter'
+      nullable: true
+    PublicGetStandardCounters200ResponseFacilityInnerEconnectDto:
+      type: object
+      properties:
+        facility-name:
+          type: string
+          description: Name of the parking facility
+          nullable: true
+          example: The parking facility
+        business-partner-name:
+          type: string
+          description: Name of the operator of this parking facility
+          nullable: true
+          example: Businesspartner Ltd.
+        location-id:
+          type: string
+          description: Location-id of the parking facility
+          nullable: true
+          example: SB4011.4711.055555
+        last-success:
+          type: string
+          description: Time of last successful update of parking facility data
+          format: date-time
+          nullable: true
+        last-failure:
+          type: string
+          description: Time of last failed update of parking facility data
+          format: date-time
+          nullable: true
+          example: '2018-05-02T14:09:24.854Z'
+        counters:
+          $ref: >-
+            #/components/schemas/PublicGetStandardCounters200ResponseFacilityInnerCountersEconnectDto
+    PublicGetStandardCountersByLocationId200ResponseEconnectDto:
+      type: object
+      properties:
+        facility-name:
+          type: string
+          description: Name of the parking facility
+          nullable: true
+          example: The parking facility
+        business-partner-name:
+          type: string
+          description: Name of the operator of this parking facility
+          nullable: true
+          example: Businesspartner Ltd.
+        location-id:
+          type: string
+          description: Location-id of the parking facility
+          nullable: true
+          example: SB4011.4711.055555
+        last-success:
+          type: string
+          description: Time of last successful update of parking facility data
+          format: date-time
+          nullable: true
+        last-failure:
+          type: string
+          description: Time of last failed update of parking facility data
+          format: date-time
+          nullable: true
+          example: '2018-05-02T14:09:24.854Z'
+        counters:
+          $ref: >-
+            #/components/schemas/PublicGetStandardCounters200ResponseFacilityInnerCountersEconnectDto
+    OpeningHour:
+      type: object
+      properties:
+        weekday:
+          type: string
+          description: Name of the weekday
+          nullable: true
+          example: Monday
+        time-format:
+          type: string
+          description: 'Format of time <br/> possible values: 24h, AM, PM'
+          nullable: true
+          example: 24h
+        hour-open:
+          type: integer
+          description: Hour of opening-time
+          format: int32
+          nullable: true
+        minutes-open:
+          type: integer
+          description: Minutes of opening-time
+          format: int32
+          nullable: true
+        hour-closing:
+          type: integer
+          description: Hour of closing-time
+          format: int32
+          nullable: true
+        minutes-closing:
+          type: integer
+          description: Minutes of closing-time
+          format: int32
+          nullable: true
+        main-sing-status:
+          type: integer
+          description: >-
+            If this value is set to 1, the main-sign will show car-park closed
+            in case that closing time ist reached
+          format: int32
+          nullable: true
+        short-park-status:
+          type: integer
+          description: >-
+            If this value is set to 1, the entries will be blocked in case that
+            closing-time is reached
+          format: int32
+          nullable: true
+        reset-present-at-open-time:
+          type: integer
+          description: >-
+            If this value is set to 1, the present-short-parkers will be reset
+            at opening-time
+          format: int32
+          nullable: true
+      description: Exactly one opening-hour entry
+    OpeningHours:
+      required:
+        - facility-no
+      type: object
+      properties:
+        facility-no:
+          type: integer
+          description: Facility-no of requested parking facility
+          format: int32
+        open-hour:
+          maxItems: 7
+          minItems: 7
+          type: array
+          items:
+            $ref: '#/components/schemas/OpeningHour'
+      description: Contains exactly 7 entries (one for each weekday)
+      nullable: true
+    PublicGetOpeningHours200ResponseEconnectDto:
+      type: object
+      properties:
+        facility:
+          type: array
+          items:
+            $ref: >-
+              #/components/schemas/PublicGetOpeningHours200ResponseFacilityInnerEconnectDto
+    PublicGetOpeningHours200ResponseFacilityInnerEconnectDto:
+      type: object
+      properties:
+        facility-name:
+          type: string
+          description: Name of the parking facility
+          nullable: true
+          example: The parking facility
+        business-partner-name:
+          type: string
+          description: Name of the operator of this parking facility
+          nullable: true
+          example: Businesspartner Ltd.
+        location-id:
+          type: string
+          description: Location-id of the parking facility
+          nullable: true
+          example: SB4011.4711.055555
+        last-success:
+          type: string
+          description: Time of last successful update of parking facility data
+          format: date-time
+          nullable: true
+        last-failure:
+          type: string
+          description: Time of last failed update of parking facility data
+          format: date-time
+          nullable: true
+          example: '2018-05-02T14:09:24.854Z'
+        opening-hours:
+          $ref: '#/components/schemas/OpeningHours'
+    PublicGetOpeningHoursByLocationId200ResponseEconnectDto:
+      type: object
+      properties:
+        facility-name:
+          type: string
+          description: Name of the parking facility
+          nullable: true
+          example: The parking facility
+        business-partner-name:
+          type: string
+          description: Name of the operator of this parking facility
+          nullable: true
+          example: Businesspartner Ltd.
+        location-id:
+          type: string
+          description: Location-id of the parking facility
+          nullable: true
+          example: SB4011.4711.055555
+        last-success:
+          type: string
+          description: Time of last successful update of parking facility data
+          format: date-time
+          nullable: true
+        last-failure:
+          type: string
+          description: Time of last failed update of parking facility data
+          format: date-time
+          nullable: true
+          example: '2018-05-02T14:09:24.854Z'
+        opening-hours:
+          $ref: '#/components/schemas/OpeningHours'
+    PublicGetFacilities200ResponseEconnectDto:
+      type: object
+      properties:
+        facility:
+          type: array
+          items:
+            $ref: >-
+              #/components/schemas/PublicGetFacilities200ResponseFacilityInnerEconnectDto
+    PublicGetFacilities200ResponseFacilityInnerEconnectDto:
+      type: object
+      properties:
+        facility-name:
+          type: string
+          description: Name of the parking facility
+          nullable: true
+          example: The parking facility
+        business-partner-name:
+          type: string
+          description: Name of the operator of this parking facility
+          nullable: true
+          example: Businesspartner Ltd.
+        location-id:
+          type: string
+          description: Location-id of the parking facility
+          nullable: true
+          example: SB4011.4711.055555
+        last-success:
+          type: string
+          description: Time of last successful update of parking facility data
+          format: date-time
+          nullable: true
+        last-failure:
+          type: string
+          description: Time of last failed update of parking facility data
+          format: date-time
+          nullable: true
+          example: '2018-05-02T14:09:24.854Z'
+        check-interval:
+          type: number
+          description: The time between requests to the facility in seconds
+          nullable: true
+          example: 600
+        last-request-duration:
+          type: number
+          description: The duration of the last succsesfull request in seconds
+          nullable: true
+          example: 0.214
+    DeletedReference:
+      required:
+        - className
+        - deleteTimestamp
+        - id
+      type: object
+      properties:
+        id:
+          type: string
+        className:
+          pattern: '^([A-Z][a-z0-9]+)+'
+          type: string
+        deleteTimestamp:
+          type: string
+          description: The instant when the reference was deleted
+          format: date-time
+      description: >-
+        A reference to a deleted identifiable managed object where the
+        identifier is unique. It is described by a string identifying the class
+        of the referenced object (key name) with a unique string identifier as
+        its value, and the deletion instant.
+    PaginatedListMetaMetaDto:
+      required:
+        - offset
+        - pageSize
+        - referenceInstant
+        - total
+      type: object
+      properties:
+        referenceInstant:
+          minimum: 0
+          type: integer
+          description: >-
+            Allows a consistent view of data across multiple paged requests.
+            Unix epoch time to be used as reference for offset > 0 (corresponds
+            to query instant, as returned by server on first call) - should be
+            the same for all pages
+          format: int32
+        offset:
+          minimum: 0
+          type: integer
+          description: Index of the first item returned in the page
+          format: int32
+        pageSize:
+          minimum: 0
+          type: integer
+          description: Maximum number of items that can be returned per page
+          format: int32
+        total:
+          minimum: 0
+          type: integer
+          description: Total number of items contained in all pages
+          format: int32
+    PublicGetPlaces200ResponseDto:
+      required:
+        - meta
+      type: object
+      properties:
+        meta:
+          $ref: '#/components/schemas/PaginatedListMetaMetaDto'
+        deletedReferences:
+          type: array
+          description: >-
+            This attribute will returned when the `modified_since` query
+            parameter is used. It will contain references to deleted resources
+            since the provided instant, that would have otherwise been included
+            in the dataset (either at the top-level or as associated objects)
+          items:
+            $ref: '#/components/schemas/DeletedReference'
+        data:
+          type: array
+          description: Hierarchy elements matching filters
+          items:
+            $ref: '#/components/schemas/Place'
+    BookingCounterDto:
+      required:
+        - available
+        - endDateTime
+        - occupied
+        - startDateTime
+      type: object
+      properties:
+        startDateTime:
+          type: string
+          format: date-time
+          example: '2023-08-20T09:00:00Z'
+        endDateTime:
+          type: string
+          format: date-time
+          example: '2023-08-20T10:00:00Z'
+        occupied:
+          type: integer
+          format: int32
+          example: 0
+        available:
+          type: integer
+          format: int32
+          example: 3
+    BookingCounterResponseDto:
+      type: object
+      properties:
+        occupancies:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookingCounterDto'
+    ErrorMessageDto:
+      type: object
+      properties:
+        errorCode:
+          type: string
+          description: error code returned from raised exception
+          nullable: true
+          enum:
+            - COUNTER_NOT_FOUND
+            - FACILITY_NOT_FOUND
+            - BAD_REQUEST
+            - ERROR_CREATING_BOOKING
+            - INTERNAL_ERROR
+            - TENANT_NOT_FOUND
+        message:
+          type: string
+          description: error message returned from backend
+          nullable: true
+          example: element not found

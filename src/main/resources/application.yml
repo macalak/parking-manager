@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: parking-manager
+  thymeleaf:
+    cache: false
+  security:
+    oauth2:
+      client:
+        registration:
+          parking:
+            provider: parking
+            authorization-grant-type: client_credentials
+            client-id: ${PARKING_API_CLIENT_ID:B2C_de_studentui}
+            client-secret: ${PARKING_API_CLIENT_SECRET:}
+            scope: ${PARKING_API_SCOPES:}
+        provider:
+          parking:
+            token-uri: ${PARKING_API_TOKEN_URI:https://auth.preprod.parking.scheidt-bachmann.net/auth/realms/de_studentui/protocol/openid-connect/token}
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  port: 9090
+  servlet:
+    context-path: /parking-manager
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+parking:
+  api:
+    base-url: ${PARKING_API_BASE_URL:https://pm.preprod.parking.scheidt-bachmann.net/capacity-manager}
+    tenant: ${PARKING_API_TENANT:de_studentui}
+
+logging:
+  structured:
+    format:
+      console: logstash
+  level:
+    root: INFO

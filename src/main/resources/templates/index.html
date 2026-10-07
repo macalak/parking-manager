@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Parking Manager</title>
+    <link rel="stylesheet" th:href="@{/styles.css}">
+</head>
+<body>
+<main class="page">
+    <header class="page-header">
+        <div>
+            <p class="eyebrow">PARKING MANAGER</p>
+            <h1>Facility overview</h1>
+        </div>
+        <span class="live-indicator">Live capacity</span>
+    </header>
+
+    <form class="facility-picker" method="get" th:action="@{/}">
+        <label for="facilityId">Parking facility</label>
+        <select id="facilityId" name="facilityId" onchange="this.form.submit()">
+            <option th:each="facility : ${facilities}"
+                    th:value="${facility.locationId}"
+                    th:text="${facility.name}"
+                    th:selected="${facility.locationId == selectedFacilityId}">Facility</option>
+        </select>
+        <noscript><button type="submit">Show facility</button></noscript>
+    </form>
+
+    <section th:if="${overview != null}" aria-labelledby="facility-name">
+        <div class="facility-heading">
+            <div>
+                <p class="eyebrow">SELECTED FACILITY</p>
+                <h2 id="facility-name" th:text="${overview.facility.name}">Facility name</h2>
+            </div>
+            <p class="operator">
+                Operated by
+                <strong th:text="${overview.facility.businessPartnerName ?: 'Not provided'}">Operator</strong>
+            </p>
+        </div>
+
+        <section class="occupancy" aria-label="Occupancy summary" th:if="${overview.hasOccupancy()}">
+            <article class="metric">
+                <span>Maximum places</span>
+                <strong th:text="${overview.occupancy.maximumPlaces}">0</strong>
+            </article>
+            <article class="metric">
+                <span>Occupied places</span>
+                <strong th:text="${overview.occupancy.occupiedPlaces}">0</strong>
+            </article>
+            <article class="metric metric-free">
+                <span>Free places</span>
+                <strong th:text="${overview.occupancy.freePlaces}">0</strong>
+            </article>
+        </section>
+        <p class="notice" th:unless="${overview.hasOccupancy()}">Occupancy data is not currently available.</p>
+
+        <section class="hours-section" aria-labelledby="hours-title">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">PLAN YOUR VISIT</p>
+                    <h2 id="hours-title">Opening hours</h2>
+                </div>
+            </div>
+            <table>
+                <thead>
+                <tr><th scope="col">Day</th><th scope="col">Opens</th><th scope="col">Closes</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="hours : ${overview.openingHours}">
+                    <th scope="row" th:text="${hours.weekday}">Monday</th>
+                    <td th:text="${hours.opensAt}">08:00</td>
+                    <td th:text="${hours.closesAt}">18:00</td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(overview.openingHours)}">
+                    <td colspan="3" class="empty-state">Opening hours are not available.</td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </section>
+
+    <p class="notice" th:if="${overview == null}">No parking facilities are available.</p>
+</main>
+</body>
+</html>

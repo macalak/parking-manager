@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Parking Manager</title>
+    <link rel="stylesheet" th:href="@{/styles.css}">
+</head>
+<body>
+<main class="page error-page">
+    <p class="eyebrow">PARKING MANAGER</p>
+    <h1>We couldn't load that information</h1>
+    <p class="notice" th:text="${message}">Please try again later.</p>
+    <a th:href="@{/}">Return to facility overview</a>
+</main>
+</body>
+</html>
