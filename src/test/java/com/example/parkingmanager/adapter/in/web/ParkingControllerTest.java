@@ -1,6 +1,11 @@
 package com.example.parkingmanager.adapter.in.web;
 
 import com.example.parkingmanager.application.ParkingOverviewService;
+import com.example.parkingmanager.application.CustomerDetailsService;
+import com.example.parkingmanager.adapter.out.parkingcontract.generated.model.CompanyDto;
+import com.example.parkingmanager.adapter.out.parkingcontract.generated.model.CustomerDto;
+import com.example.parkingmanager.adapter.out.parkingcontract.generated.model.PersonDto;
+import com.example.parkingmanager.adapter.out.parkingcontract.generated.model.B2cDto;
 import com.example.parkingmanager.domain.Facility;
 import com.example.parkingmanager.domain.FacilityOverview;
 import com.example.parkingmanager.domain.Occupancy;
@@ -15,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -39,6 +45,9 @@ class ParkingControllerTest {
     @MockitoBean
     private ParkingOverviewService parkingOverviewService;
 
+    @MockitoBean
+    private CustomerDetailsService customerDetailsService;
+
     @Test
     void rendersSelectedFacilityOverview() throws Exception {
         var facility = new Facility("loc-1", "Central Garage", "Parking Co");
@@ -53,5 +62,54 @@ class ParkingControllerTest {
                 .andExpect(view().name("index"))
                 .andExpect(model().attribute("selectedFacilityId", "loc-1"))
                 .andExpect(header().doesNotExist("X-Correlation-Id"));
+    }
+
+    @Test
+    void rendersPersonCustomerDetails() throws Exception {
+        var customer = new CustomerDto("customer-1", null, null, false)
+                .customerType(CustomerDto.CustomerTypeEnum.PERSON)
+                .person(new PersonDto().firstName("Jane").lastName("Doe").email("jane@example.test"));
+        when(customerDetailsService.getCustomer("customer-1")).thenReturn(customer);
+
+        mockMvc.perform(get("/parking-manager/customers")
+                        .contextPath("/parking-manager")
+                        .param("businessId", "customer-1"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("customer-details"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Jane")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("jane@example.test")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("First name")));
+    }
+
+    @Test
+    void rendersCompanyCustomerDetailsWithoutPersonOrB2cFields() throws Exception {
+        var customer = new CustomerDto("company-1", null, null, false)
+                .customerType(CustomerDto.CustomerTypeEnum.COMPANY)
+                .company(new CompanyDto().name("Parking Company"));
+        when(customerDetailsService.getCustomer("company-1")).thenReturn(customer);
+
+        mockMvc.perform(get("/parking-manager/customers")
+                        .contextPath("/parking-manager")
+                        .param("businessId", "company-1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Parking Company")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Company name")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("First name"))));
+    }
+
+    @Test
+    void rendersB2cCustomerDetails() throws Exception {
+        var customer = new CustomerDto("b2c-1", null, null, false)
+                .customerType(CustomerDto.CustomerTypeEnum.B2_C)
+                .b2c(new B2cDto().firstName("Alex").lastName("Smith").email("alex@example.test"));
+        when(customerDetailsService.getCustomer("b2c-1")).thenReturn(customer);
+
+        mockMvc.perform(get("/parking-manager/customers")
+                        .contextPath("/parking-manager")
+                        .param("businessId", "b2c-1"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Alex")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("B2C")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("alex@example.test")));
     }
 }

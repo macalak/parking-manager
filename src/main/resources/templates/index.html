@@ -13,7 +13,10 @@
             <p class="eyebrow">PARKING MANAGER</p>
             <h1>Facility overview</h1>
         </div>
-        <span class="live-indicator">Live capacity</span>
+        <div class="header-actions">
+            <a th:href="@{/customers}">Customer details</a>
+            <span class="live-indicator">Live capacity</span>
+        </div>
     </header>
 
     <form class="facility-picker" method="get" th:action="@{/}">

@@ -28,14 +28,21 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
+    implementation 'com.google.code.gson:gson:2.11.0'
+    implementation 'io.gsonfire:gson-fire:1.8.5'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
     implementation 'io.swagger.core.v3:swagger-annotations-jakarta:2.2.30'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
 
 }
 
 def generatedOpenApiDir = layout.buildDirectory.dir('generated/openapi')
+def generatedContractOpenApiDir = layout.buildDirectory.dir('generated/contract-openapi')
 
 openApiGenerate {
     generatorName = 'spring'
@@ -60,16 +67,44 @@ openApiGenerate {
     ]
 }
 
+tasks.register('openApiGenerateContract', org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    generatorName = 'java'
+    library = 'okhttp-gson'
+    skipValidateSpec = true
+    inputSpec = file("$rootDir/apispec/cc-openapi.yaml").toURI().toString()
+    outputDir = generatedContractOpenApiDir.get().asFile.absolutePath
+    modelPackage = 'com.example.parkingmanager.adapter.out.parkingcontract.generated.model'
+    apiPackage = 'com.example.parkingmanager.adapter.out.parkingcontract.generated.api'
+    invokerPackage = 'com.example.parkingmanager.adapter.out.parkingcontract.generated'
+    globalProperties = [
+        apis            : '',
+        models          : '',
+        supportingFiles : 'ApiClient.java,ApiException.java,ApiResponse.java,ApiCallback.java,Configuration.java,JSON.java,Pair.java,ProgressRequestBody.java,ProgressResponseBody.java,ServerConfiguration.java,ServerVariable.java,StringUtil.java,Authentication.java,HttpBasicAuth.java,HttpBearerAuth.java,ApiKeyAuth.java,OAuth.java',
+        modelDocs       : 'false',
+        modelTests      : 'false',
+        apiTests        : 'false',
+        apiDocs         : 'false'
+    ]
+    configOptions = [
+        dateLibrary            : 'java8',
+        useJakartaEe            : 'true',
+        hideGenerationTimestamp: 'true',
+        serializationLibrary   : 'jackson'
+    ]
+}
+
 sourceSets {
     main {
         java {
             srcDir generatedOpenApiDir.map { it.dir('src/main/java') }
+            srcDir generatedContractOpenApiDir.map { it.dir('src/main/java') }
         }
     }
 }
 
 tasks.named('compileJava') {
     dependsOn tasks.named('openApiGenerate')
+    dependsOn tasks.named('openApiGenerateContract')
 }
 
 tasks.named('test') {

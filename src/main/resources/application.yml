@@ -39,6 +39,9 @@ parking:
   api:
     base-url: ${PARKING_API_BASE_URL:https://pm.preprod.parking.scheidt-bachmann.net/capacity-manager}
     tenant: ${PARKING_API_TENANT:de_studentui}
+  contract-api:
+    base-url: ${PARKING_CONTRACT_API_BASE_URL:https://pm.preprod.parking.scheidt-bachmann.net/customers-contracts}
+    tenant: ${PARKING_CONTRACT_API_TENANT:${PARKING_API_TENANT:de_studentui}}
 
 logging:
   structured:

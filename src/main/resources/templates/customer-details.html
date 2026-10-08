@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Customer details | Parking Manager</title>
+    <link rel="stylesheet" th:href="@{/styles.css}">
+</head>
+<body>
+<main class="page">
+    <header class="page-header">
+        <div>
+            <p class="eyebrow">PARKING MANAGER</p>
+            <h1>Customer details</h1>
+        </div>
+        <a th:href="@{/}">Facility overview</a>
+    </header>
+
+    <form class="customer-search" method="get" th:action="@{/customers}">
+        <label for="businessId">Customer business ID</label>
+        <div class="search-controls">
+            <input id="businessId" name="businessId" type="search" required
+                   th:value="${businessId}" placeholder="Enter a customer ID">
+            <button type="submit">Find customer</button>
+        </div>
+    </form>
+
+    <p class="notice" th:if="${customer == null}">
+        Enter a customer business ID to view its details.
+    </p>
+
+    <section th:if="${customer != null}" aria-labelledby="customer-name">
+        <div class="customer-heading">
+            <div>
+                <p class="eyebrow" th:text="${customerType ?: 'CUSTOMER'}">CUSTOMER TYPE</p>
+                <h2 id="customer-name"
+                    th:text="${customer.person != null ? (customer.person.firstName ?: '') + ' ' + (customer.person.lastName ?: '') : (customer.company != null ? customer.company.name : (customer.b2c != null ? (customer.b2c.firstName ?: '') + ' ' + (customer.b2c.lastName ?: '') : 'Customer'))}">
+                    Customer name
+                </h2>
+            </div>
+            <span class="customer-id" th:text="${customer.businessId}">Business ID</span>
+        </div>
+
+        <section class="customer-section" aria-labelledby="profile-title">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">PROFILE</p>
+                    <h2 id="profile-title">Customer type details</h2>
+                </div>
+            </div>
+
+            <dl class="details-grid" th:if="${customerType == 'PERSON' and customer.person != null}">
+                <div><dt>First name</dt><dd th:text="${customer.person.firstName ?: 'Not provided'}">First name</dd></div>
+                <div><dt>Last name</dt><dd th:text="${customer.person.lastName ?: 'Not provided'}">Last name</dd></div>
+                <div><dt>Email</dt><dd th:text="${customer.person.email ?: 'Not provided'}">Email</dd></div>
+                <div><dt>Phone</dt><dd th:text="${customer.person.phoneNumber ?: 'Not provided'}">Phone</dd></div>
+                <div><dt>Cost center</dt><dd th:text="${customer.person.costCenter ?: 'Not provided'}">Cost center</dd></div>
+            </dl>
+
+            <dl class="details-grid" th:if="${customerType == 'COMPANY' and customer.company != null}">
+                <div><dt>Company name</dt><dd th:text="${customer.company.name ?: 'Not provided'}">Company name</dd></div>
+                <div><dt>Registration certificate</dt><dd th:text="${customer.company.certificateOfRegistration ?: 'Not provided'}">Registration</dd></div>
+                <div><dt>Register court</dt><dd th:text="${customer.company.registerCourt ?: 'Not provided'}">Court</dd></div>
+                <div><dt>Tax number</dt><dd th:text="${customer.company.taxNumber ?: 'Not provided'}">Tax number</dd></div>
+                <div><dt>VAT ID</dt><dd th:text="${customer.company.vatId ?: 'Not provided'}">VAT ID</dd></div>
+                <div><dt>Intercom number</dt><dd th:text="${customer.company.intercomNumber ?: 'Not provided'}">Intercom number</dd></div>
+                <div><dt>Email</dt><dd th:text="${customer.company.email ?: 'Not provided'}">Email</dd></div>
+                <div><dt>Cost center</dt><dd th:text="${customer.company.costCenter ?: 'Not provided'}">Cost center</dd></div>
+                <div><dt>Pre-booking agency</dt><dd th:text="${customer.company.preBookingAgency == null ? 'Not provided' : (customer.company.preBookingAgency ? 'Yes' : 'No')}">No</dd></div>
+            </dl>
+
+            <dl class="details-grid" th:if="${customerType == 'B2C' and customer.b2c != null}">
+                <div><dt>First name</dt><dd th:text="${customer.b2c.firstName ?: 'Not provided'}">First name</dd></div>
+                <div><dt>Last name</dt><dd th:text="${customer.b2c.lastName ?: 'Not provided'}">Last name</dd></div>
+                <div><dt>Email</dt><dd th:text="${customer.b2c.email ?: 'Not provided'}">Email</dd></div>
+                <div><dt>Phone</dt><dd th:text="${customer.b2c.phoneNumber ?: 'Not provided'}">Phone</dd></div>
+                <div><dt>Cost center</dt><dd th:text="${customer.b2c.costCenter ?: 'Not provided'}">Cost center</dd></div>
+            </dl>
+
+            <p class="empty-state" th:if="${(customerType == 'PERSON' and customer.person == null) or (customerType == 'COMPANY' and customer.company == null) or (customerType == 'B2C' and customer.b2c == null) or (customerType != 'PERSON' and customerType != 'COMPANY' and customerType != 'B2C')}">
+                No profile details are available for this customer type.
+            </p>
+        </section>
+
+        <section class="customer-section" aria-labelledby="account-title">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">ACCOUNT</p>
+                    <h2 id="account-title">Customer information</h2>
+                </div>
+            </div>
+            <dl class="details-grid">
+                <div><dt>External ID</dt><dd th:text="${customer.externalId ?: 'Not provided'}">External ID</dd></div>
+                <div><dt>Business partner</dt><dd th:text="${customer.businessPartnerName ?: 'Not provided'}">Business partner</dd></div>
+                <div><dt>Business partner number</dt><dd th:text="${customer.businessPartnerNumber ?: 'Not provided'}">Partner number</dd></div>
+                <div><dt>Revision</dt><dd th:text="${customer.revision ?: 'Not provided'}">Revision</dd></div>
+            </dl>
+        </section>
+
+        <section class="customer-section" aria-labelledby="addresses-title">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">CONTACT</p>
+                    <h2 id="addresses-title">Addresses</h2>
+                </div>
+            </div>
+            <div class="address-card" th:each="address : ${customer.addresses}">
+                <p th:text="${(address.street ?: '') + (address.houseNo != null ? ' ' + address.houseNo : '')}">Street address</p>
+                <p th:text="${(address.postCode ?: '') + (address.city != null ? ' ' + address.city : '')}">Postal code and city</p>
+                <p th:text="${address.state ?: ''}">State</p>
+                <p th:text="${address.country ?: 'Country not provided'}">Country</p>
+            </div>
+            <p class="empty-state" th:if="${#lists.isEmpty(customer.addresses)}">No addresses are available.</p>
+        </section>
+    </section>
+</main>
+</body>
+</html>

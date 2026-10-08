@@ -20,10 +20,12 @@ Set the following environment variables before starting the application:
 | `PARKING_API_CLIENT_SECRET` | OAuth2 client secret |
 | `PARKING_API_SCOPES` | Optional comma-separated OAuth2 scopes |
 | `PARKING_API_TENANT` | Parking API tenant name |
+| `PARKING_CONTRACT_API_BASE_URL` | Customers Contracts Consumers API base URL; defaults to the URL in `apispec/cc-openapi.yaml` |
+| `PARKING_CONTRACT_API_TENANT` | Customers Contracts Consumers API tenant; defaults to `PARKING_API_TENANT` |
 
-The UI is available at `http://localhost:9090/parking-manager/`; health and info actuator endpoints are available below `/parking-manager/actuator`.
+The facility overview is available at `http://localhost:9090/parking-manager/`; customer details can be looked up by business ID at `/parking-manager/customers?businessId=...`. Health and info actuator endpoints are available below `/parking-manager/actuator`.
 
-Parking API HTTP requests and responses are logged at `INFO`, including response bodies. Authorization and cookie headers are excluded from HTTP logs so access tokens are not logged.
+The Capacity API adapter logs raw HTTP requests and responses at `INFO`, excluding authorization and cookie headers. The Customers Contracts Consumers client logs structured operation status without logging request bodies or access tokens.
 
 ## Build and test
 
@@ -32,7 +34,7 @@ Parking API HTTP requests and responses are logged at `INFO`, including response
 .\gradlew.bat test
 ```
 
-The OpenAPI Generator task reads `apispec/openapi.yaml` and writes generated model classes to `build/generated/openapi`. The supplied specification omits the required `info.version` field, so generator validation is skipped without changing the API contract. Do not edit generated files; make API changes in the specification and regenerate during the build.
+The OpenAPI Generator tasks read `apispec/openapi.yaml` and `apispec/cc-openapi.yaml`, writing generated sources to `build/generated/openapi` and `build/generated/contract-openapi`. The supplied capacity specification omits the required `info.version` field, so generator validation is skipped without changing the API contract. Do not edit generated files; make API changes in the specifications and regenerate during the build.
 
 ## Architecture
 
@@ -40,4 +42,5 @@ The OpenAPI Generator task reads `apispec/openapi.yaml` and writes generated mod
 - `application`: overview use case and outbound port
 - `adapter.in.web`: MVC controller and server-rendered Thymeleaf views
 - `adapter.out.parkingapi`: OAuth-authenticated API client and mapping from generated API models to domain records
+- `adapter.out.parkingcontract`: OAuth-authenticated client exposing all generated Customers Contracts Consumers API groups
 - `configuration`: API properties and OAuth client setup
